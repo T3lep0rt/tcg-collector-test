@@ -1,0 +1,22 @@
+{
+  "name": "tcg-collector-test",
+  "version": "0.0.1",
+  "private": true,
+  "description": "A full-stack TCG collection management application",
+  "scripts": {
+    "install:all": "cd frontend && npm install && cd ../backend && npm install",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build:frontend": "cd frontend && npm run build"
+  },
+  "keywords": [
+    "tcg",
+    "collector",
+    "react",
+    "vite",
+    "node",
+    "express",
+    "prisma"
+  ],
+  "license": "MIT"
+}
