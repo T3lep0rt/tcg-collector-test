@@ -8,7 +8,9 @@
     "start": "node src/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "seed": "node src/generateCards.js",
+    "seed:examples": "node src/seedExample.js"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",
