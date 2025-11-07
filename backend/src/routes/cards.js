@@ -65,6 +65,48 @@ router.get('/', async (req, res) => {
 });
 
 /**
+ * GET /api/cards/stats/summary
+ * Get collection statistics for current user
+ * IMPORTANT: This must be before /:id route to avoid matching 'stats' as an id
+ */
+router.get('/stats/summary', async (req, res) => {
+  try {
+    const userId = req.session.userId;
+
+    const [totalCards, uniqueCards, sets, rarities] = await Promise.all([
+      prisma.card.aggregate({
+        where: { userId },
+        _sum: { quantity: true }
+      }),
+      prisma.card.count({
+        where: { userId }
+      }),
+      prisma.card.groupBy({
+        by: ['set'],
+        where: { userId },
+        _count: true
+      }),
+      prisma.card.groupBy({
+        by: ['rarity'],
+        where: { userId },
+        _count: true
+      })
+    ]);
+
+    res.json({
+      totalCards: totalCards._sum.quantity || 0,
+      uniqueCards,
+      sets: sets.length,
+      setBreakdown: sets,
+      rarityBreakdown: rarities
+    });
+  } catch (error) {
+    console.error('Get stats error:', error);
+    res.status(500).json({ error: 'Failed to get statistics' });
+  }
+});
+
+/**
  * GET /api/cards/:id
  * Get single card by ID (must belong to user)
  */
@@ -197,47 +239,6 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error('Delete card error:', error);
     res.status(500).json({ error: 'Failed to delete card' });
-  }
-});
-
-/**
- * GET /api/cards/stats/summary
- * Get collection statistics for current user
- */
-router.get('/stats/summary', async (req, res) => {
-  try {
-    const userId = req.session.userId;
-
-    const [totalCards, uniqueCards, sets, rarities] = await Promise.all([
-      prisma.card.aggregate({
-        where: { userId },
-        _sum: { quantity: true }
-      }),
-      prisma.card.count({
-        where: { userId }
-      }),
-      prisma.card.groupBy({
-        by: ['set'],
-        where: { userId },
-        _count: true
-      }),
-      prisma.card.groupBy({
-        by: ['rarity'],
-        where: { userId },
-        _count: true
-      })
-    ]);
-
-    res.json({
-      totalCards: totalCards._sum.quantity || 0,
-      uniqueCards,
-      sets: sets.length,
-      setBreakdown: sets,
-      rarityBreakdown: rarities
-    });
-  } catch (error) {
-    console.error('Get stats error:', error);
-    res.status(500).json({ error: 'Failed to get statistics' });
   }
 });
 
