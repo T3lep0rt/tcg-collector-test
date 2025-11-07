@@ -2,11 +2,13 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import * as pokemonTcgService from './services/pokemonTcgService.js';
+import { PrismaClient } from '@prisma/client';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const prisma = new PrismaClient();
 
 // Middleware
 app.use(cors());
@@ -22,150 +24,88 @@ app.get('/api', (req, res) => {
   res.json({ message: 'Welcome to TCG Collector API' });
 });
 
-// Pokemon TCG API Routes
+// Card Routes
 
-/**
- * GET /api/pokemon-tcg/cards
- * Fetch all Pokemon TCG cards with optional filters
- * Query params:
- *   - page: Page number (default: 1)
- *   - pageSize: Number of cards per page (default: 250, max: 250)
- *   - q: Search query (e.g., 'name:charizard', 'set.id:base1')
- *   - orderBy: Sort field (e.g., 'name', '-releaseDate')
- */
-app.get('/api/pokemon-tcg/cards', async (req, res) => {
+// Get all cards
+app.get('/api/cards', async (req, res) => {
   try {
-    const { page, pageSize, q, orderBy } = req.query;
-    const options = {
-      page: page ? parseInt(page) : 1,
-      pageSize: pageSize ? parseInt(pageSize) : 250,
-      q: q || '',
-      orderBy: orderBy || 'name',
-    };
-
-    const result = await pokemonTcgService.fetchAllCards(options);
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch Pokemon TCG cards',
-      details: error.message
+    const cards = await prisma.card.findMany({
+      orderBy: { createdAt: 'desc' }
     });
+    res.json(cards);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch cards' });
   }
 });
 
-/**
- * GET /api/pokemon-tcg/cards/:id
- * Fetch a single Pokemon TCG card by ID
- */
-app.get('/api/pokemon-tcg/cards/:id', async (req, res) => {
+// Get a specific card
+app.get('/api/cards/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await pokemonTcgService.fetchCardById(id);
-
-    if (!result.success) {
-      return res.status(404).json(result);
+    const card = await prisma.card.findUnique({
+      where: { id: req.params.id }
+    });
+    if (!card) {
+      return res.status(404).json({ error: 'Card not found' });
     }
-
-    res.json(result);
+    res.json(card);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch Pokemon TCG card',
-      details: error.message
-    });
+    res.status(500).json({ error: 'Failed to fetch card' });
   }
 });
 
-/**
- * GET /api/pokemon-tcg/sets
- * Fetch all Pokemon TCG sets
- */
-app.get('/api/pokemon-tcg/sets', async (req, res) => {
+// Create a new card
+app.post('/api/cards', async (req, res) => {
   try {
-    const result = await pokemonTcgService.fetchAllSets();
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch Pokemon TCG sets',
-      details: error.message
+    const { name, set, rarity, condition, quantity, imageUrl, notes, userId } = req.body;
+    const card = await prisma.card.create({
+      data: {
+        name,
+        set,
+        rarity,
+        condition,
+        quantity: quantity || 1,
+        imageUrl,
+        notes,
+        userId: userId || null
+      }
     });
+    res.status(201).json(card);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create card' });
   }
 });
 
-/**
- * GET /api/pokemon-tcg/cards/search/:name
- * Search Pokemon TCG cards by name
- */
-app.get('/api/pokemon-tcg/cards/search/:name', async (req, res) => {
+// Update a card
+app.put('/api/cards/:id', async (req, res) => {
   try {
-    const { name } = req.params;
-    const { page, pageSize } = req.query;
-
-    const result = await pokemonTcgService.searchCardsByName(
-      name,
-      page ? parseInt(page) : 1,
-      pageSize ? parseInt(pageSize) : 50
-    );
-
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to search Pokemon TCG cards',
-      details: error.message
+    const { name, set, rarity, condition, quantity, imageUrl, notes } = req.body;
+    const card = await prisma.card.update({
+      where: { id: req.params.id },
+      data: {
+        name,
+        set,
+        rarity,
+        condition,
+        quantity,
+        imageUrl,
+        notes
+      }
     });
+    res.json(card);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update card' });
   }
 });
 
-/**
- * GET /api/pokemon-tcg/sets/:setId/cards
- * Fetch all cards from a specific set
- */
-app.get('/api/pokemon-tcg/sets/:setId/cards', async (req, res) => {
+// Delete a card
+app.delete('/api/cards/:id', async (req, res) => {
   try {
-    const { setId } = req.params;
-    const { page, pageSize } = req.query;
-
-    const result = await pokemonTcgService.fetchCardsBySet(
-      setId,
-      page ? parseInt(page) : 1,
-      pageSize ? parseInt(pageSize) : 250
-    );
-
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch cards from set',
-      details: error.message
+    await prisma.card.delete({
+      where: { id: req.params.id }
     });
-  }
-});
-
-/**
- * GET /api/pokemon-tcg/cards/rarity/:rarity
- * Fetch Pokemon TCG cards by rarity
- */
-app.get('/api/pokemon-tcg/cards/rarity/:rarity', async (req, res) => {
-  try {
-    const { rarity } = req.params;
-    const { page, pageSize } = req.query;
-
-    const result = await pokemonTcgService.fetchCardsByRarity(
-      rarity,
-      page ? parseInt(page) : 1,
-      pageSize ? parseInt(pageSize) : 250
-    );
-
-    res.json(result);
+    res.status(204).send();
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch cards by rarity',
-      details: error.message
-    });
+    res.status(500).json({ error: 'Failed to delete card' });
   }
 });
 
