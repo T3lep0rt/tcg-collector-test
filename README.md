@@ -13,7 +13,7 @@ A full-stack application for managing trading card game (TCG) collections.
 - **Node.js** - JavaScript runtime
 - **Express** - Web framework
 - **Prisma** - Modern database ORM
-- **SQLite** - Database (easily swappable with PostgreSQL/MySQL)
+- **PostgreSQL** - Database
 
 ## Project Structure
 
@@ -45,6 +45,7 @@ tcg-collector-test/
 ### Prerequisites
 - Node.js (v18 or higher)
 - npm or yarn
+- PostgreSQL (v12 or higher)
 
 ### Installation
 
@@ -65,6 +66,9 @@ npm install
 cd backend
 # Copy environment variables
 cp .env.example .env
+
+# Update DATABASE_URL in .env with your PostgreSQL connection string
+# Example: postgresql://user:password@localhost:5432/tcg_collector?schema=public
 
 # Generate Prisma client
 npm run prisma:generate
