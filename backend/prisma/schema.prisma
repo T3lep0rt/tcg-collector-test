@@ -15,7 +15,11 @@ datasource db {
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
+  password  String   // Hashed password
   name      String?
+  username  String?  @unique
+  bio       String?
+  avatar    String?  // URL to avatar image
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   cards     Card[]
