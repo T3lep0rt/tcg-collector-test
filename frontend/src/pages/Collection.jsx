@@ -27,6 +27,7 @@ export default function Collection() {
   useEffect(() => {
     loadCollection();
     loadStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadCollection = async () => {
@@ -71,7 +72,7 @@ export default function Collection() {
   };
 
   const handleDeleteCard = async (cardId) => {
-    if (!confirm('Are you sure you want to delete this card?')) return;
+    if (!window.confirm('Are you sure you want to delete this card?')) return;
 
     try {
       await api.deleteCard(cardId);
