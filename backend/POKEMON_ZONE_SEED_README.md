@@ -4,11 +4,12 @@ This script fetches Pokemon TCG Pocket card data from [pokemon-zone.com](https:/
 
 ## Overview
 
-The script scrapes card information from Pokemon Zone's expansion pages and creates card entries in your database. It's adapted from the original PHP script to work with the Node.js/Prisma framework.
+The script **automatically discovers and scrapes** all available sets from Pokemon Zone's sets page, then fetches card information from each expansion and creates card entries in your database. It's adapted from the original PHP script to work with the Node.js/Prisma framework.
 
 ## Features
 
-- **Web Scraping**: Automatically fetches card data from pokemon-zone.com
+- **Automatic Set Discovery**: Automatically fetches all available sets from pokemon-zone.com/sets/
+- **Web Scraping**: Fetches card data from all discovered expansion pages
 - **HTML Parsing**: Extracts card details including:
   - Pokemon name
   - Card number
@@ -16,15 +17,17 @@ The script scrapes card information from Pokemon Zone's expansion pages and crea
   - Booster pack information
   - Card images (webp format)
 - **Duplicate Detection**: Skips cards that already exist in the database
-- **Multiple Expansions**: Supports fetching from multiple expansion sets
-- **Rate Limiting**: Includes 500ms delay between requests to avoid overwhelming the server
+- **Set-Based Filtering**: Stores cards with set slugs (e.g., "a1", "promo-a") for easy filtering
+- **Rate Limiting**: Includes 500ms delay between cards and 1s delay between sets
+- **Progress Tracking**: Real-time progress reporting and overall statistics
 
 ## Supported Expansions
 
-Currently configured to fetch from:
-- **Genetic Apex** (A1) - `https://www.pokemon-zone.com/sets/a1/`
-- **Promo A** - `https://www.pokemon-zone.com/sets/promo-a/`
-- **Mythical Island** (A1a) - `https://www.pokemon-zone.com/sets/a1a/`
+The script automatically discovers **all available sets** from pokemon-zone.com including:
+- **Genetic Apex** (a1)
+- **Promo A** (promo-a)
+- **Mythical Island** (a1a)
+- And any new sets added to the website in the future!
 
 ## Usage
 
@@ -52,7 +55,16 @@ The script provides detailed console output:
 ```
 ===== Starting Pokemon Zone Card Seeder =====
 
+Fetching available sets from: https://www.pokemon-zone.com/sets/
+Found 3 sets
+
+📦 Sets to process:
+  1. Genetic Apex (a1) - https://www.pokemon-zone.com/sets/a1/
+  2. Promo A (promo-a) - https://www.pokemon-zone.com/sets/promo-a/
+  3. Mythical Island (a1a) - https://www.pokemon-zone.com/sets/a1a/
+
 --- Processing expansion: Genetic Apex ---
+Set slug: a1
 Fetching card links from: https://www.pokemon-zone.com/sets/a1/
 Found 226 card links
 
@@ -71,7 +83,21 @@ Processing card 1/226: https://www.pokemon-zone.com/cards/001
   Skipped (already exist): 0
   Errors: 0
 
-===== Seeding Complete =====
+============================================================
+📊 OVERALL SUMMARY
+============================================================
+Total Sets Found:      3
+Sets Processed:        3
+Total Cards Processed: 450
+New Cards Added:       450
+Cards Skipped:         0
+Errors:                0
+============================================================
+
+✅ Seeding Complete!
+
+💡 Tip: You can now filter cards by set using the "set" field (slug format)
+   Example sets: a1, promo-a, a1a
 ```
 
 ## Database Schema Mapping
@@ -82,12 +108,50 @@ The script maps pokemon-zone.com data to the Prisma Card model:
 |--------------|--------------|-------|
 | Pokemon Name | `name` | Extracted from `<h1>` tag |
 | Card Number | `number` | From card metadata |
-| Expansion Name | `set` and `setName` | E.g., "Genetic Apex" |
+| Set Slug | `set` | E.g., "a1", "promo-a", "a1a" (for filtering) |
+| Expansion Name | `setName` | E.g., "Genetic Apex" (for display) |
 | Rarity Icons | `rarity` | Converted to 0-7 scale |
 | Image URL | `imageUrl` | WebP format, full URL |
 | Booster Pack | `notes` | Stored as "Booster: {pack name}" |
 | - | `condition` | Defaults to "Near Mint" |
 | - | `quantity` | Defaults to 1 |
+
+## Filtering by Set
+
+Cards are now stored with **set slugs** for easy filtering. You can filter cards by set in your API queries:
+
+### Example API Query
+```javascript
+// Get all cards from Genetic Apex set
+const geneticApexCards = await prisma.card.findMany({
+  where: {
+    set: 'a1'
+  }
+});
+
+// Get all promo cards
+const promoCards = await prisma.card.findMany({
+  where: {
+    set: 'promo-a'
+  }
+});
+
+// Get all cards from Mythical Island
+const mythicalIslandCards = await prisma.card.findMany({
+  where: {
+    set: 'a1a'
+  }
+});
+
+// Get unique list of all sets
+const sets = await prisma.card.findMany({
+  select: {
+    set: true,
+    setName: true
+  },
+  distinct: ['set']
+});
+```
 
 ## Rarity Calculation
 
@@ -106,20 +170,16 @@ Examples:
 - 2 stars = 4 + 2 = 6 (Very Rare)
 - 1 crown = 7 + 1 = 8 (Ultra Rare)
 
-## Adding More Expansions
+## Automatic Set Discovery
 
-To add additional expansions, edit the `main()` function in `seedFromPokemonZone.js`:
+The script automatically discovers all sets from pokemon-zone.com/sets/ - **no manual configuration needed!**
 
-```javascript
-async function main() {
-  console.log('===== Starting Pokemon Zone Card Seeder =====\n');
+When new sets are added to Pokemon Zone, simply run the script again and it will automatically:
+1. Discover the new sets
+2. Fetch all cards from those sets
+3. Add them to your database
 
-  // Add new expansions here:
-  await generateCardsForExpansion('https://www.pokemon-zone.com/sets/YOUR_SET/', 'Your Set Name');
-
-  console.log('\n===== Seeding Complete =====');
-}
-```
+You don't need to modify any code to support new expansions.
 
 ## Optional: Clear Existing Data
 
@@ -142,6 +202,11 @@ To start with a fresh database, uncomment these lines in the `main()` function:
 
 ### Functions
 
+#### `fetchAllSets()`
+Automatically discovers all available sets from pokemon-zone.com/sets/.
+
+**Returns:** Array of set objects with `{ url, name, slug }` properties
+
 #### `fetchCardLinks(url)`
 Fetches all card links from an expansion page.
 
@@ -150,12 +215,13 @@ Fetches all card links from an expansion page.
 
 **Returns:** Array of card URLs
 
-#### `generateCardsForExpansion(url, expansionName)`
+#### `generateCardsForExpansion(url, expansionName, setSlug)`
 Processes all cards from an expansion and adds them to the database.
 
 **Parameters:**
 - `url` - Expansion page URL
 - `expansionName` - Display name for the expansion
+- `setSlug` - Set identifier slug (e.g., "a1", "promo-a")
 
 **Returns:** Array of results (card data or errors)
 
@@ -209,10 +275,13 @@ The script includes User-Agent headers, but the site may be blocking requests. T
 
 ## Notes
 
-- The script respects the source website with appropriate delays
+- The script **automatically discovers all sets** - no manual updates needed when new sets are released
+- Card filtering by set is easy using the `set` field (slug format)
+- The script respects the source website with appropriate delays (500ms between cards, 1s between sets)
 - Card images are linked (not downloaded) to save space
 - The script is idempotent - safe to run multiple times
 - Progress is logged in real-time for monitoring
+- Overall statistics are provided at the end of the run
 
 ## Future Enhancements
 
@@ -222,3 +291,5 @@ Potential improvements:
 - Support for additional card attributes (HP, attacks, etc.)
 - Progress resumption on interruption
 - Export/import functionality
+- Better set name extraction (currently uses basic pattern matching)
+- Support for filtering sets before processing (e.g., only process specific sets)
