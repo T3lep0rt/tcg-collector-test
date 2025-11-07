@@ -23,17 +23,33 @@ model User {
 
 model Card {
   id          String   @id @default(uuid())
+  cardId      String?  @unique  // Pokemon TCG API ID
   name        String
   set         String
+  setName     String?
+  number      String?
   rarity      String?
+  types       String?  // JSON string array
+  supertype   String?
+  subtypes    String?  // JSON string array
+  hp          String?
+  artist      String?
+  flavorText  String?
+  attacks     String?  // JSON string
+  weaknesses  String?  // JSON string
+  resistances String?  // JSON string
+  retreatCost String?  // JSON string array
+  prices      String?  // JSON string
   condition   String?
   quantity    Int      @default(1)
   imageUrl    String?
+  imageUrlHiRes String?
   notes       String?
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([userId])
+  @@index([cardId])
 }
