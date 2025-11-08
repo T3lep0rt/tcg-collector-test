@@ -1,0 +1,412 @@
+import { useState, useEffect } from 'react';
+
+const CardDetailModal = ({ card, onClose, onUpdate, onDelete, isOwned, currentUserId }) => {
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedCard, setEditedCard] = useState({
+    condition: card?.condition || 'Near Mint',
+    quantity: card?.quantity || 1,
+    notes: card?.notes || ''
+  });
+
+  // Prevent scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  // Process image URL (same logic as Card component)
+  const getProcessedImageUrl = (url) => {
+    if (!url) return null;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return null;
+    }
+    if (url.includes('assets.tcgdex.net')) {
+      if (url.match(/\/(low|high)\.(png|jpg|webp)$/)) {
+        return url;
+      }
+      // Use high quality for modal
+      return `${url}/high.webp`;
+    }
+    return url;
+  };
+
+  const processedImageUrl = getProcessedImageUrl(card?.imageUrl);
+
+  const handleSave = () => {
+    if (onUpdate) {
+      onUpdate(card, editedCard);
+    }
+    setIsEditing(false);
+  };
+
+  const handleDelete = () => {
+    if (window.confirm(`Are you sure you want to remove "${card?.name}" from your collection?`)) {
+      if (onDelete) {
+        onDelete(card);
+      }
+      onClose();
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  if (!card) return null;
+
+  const conditionOptions = ['Mint', 'Near Mint', 'Lightly Played', 'Moderately Played', 'Heavily Played', 'Damaged'];
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4 animate-fadeIn overflow-y-auto"
+      onClick={handleBackdropClick}
+    >
+      <div
+        className="bg-gradient-to-br from-slate-900 via-slate-800 to-purple-900 rounded-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden shadow-2xl border border-purple-500/30 my-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-slate-900/98 to-purple-900/98 backdrop-blur-xl border-b border-purple-500/30 px-4 sm:px-6 py-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-2xl sm:text-3xl font-bold text-white truncate">
+                {card.name}
+              </h2>
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                <span className="text-purple-300 text-sm sm:text-base">{card.set}</span>
+                {card.rarity && (
+                  <span className="bg-gradient-to-r from-yellow-400 to-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                    ★ {card.rarity}
+                  </span>
+                )}
+                {isOwned && (
+                  <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                    In Collection
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
+              {isOwned && !isEditing && (
+                <>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="p-2 sm:p-3 bg-blue-500/80 hover:bg-blue-600 text-white rounded-lg transition-all hover:scale-110"
+                    title="Edit card details"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="p-2 sm:p-3 bg-red-500/80 hover:bg-red-600 text-white rounded-lg transition-all hover:scale-110"
+                    title="Remove from collection"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </>
+              )}
+              <button
+                onClick={handlePrint}
+                className="hidden sm:block p-2 sm:p-3 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg transition-all hover:scale-110"
+                title="Print card"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+              </button>
+              <button
+                onClick={onClose}
+                className="p-2 sm:p-3 text-gray-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all"
+                title="Close"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="overflow-y-auto max-h-[calc(95vh-100px)]">
+          <div className="p-4 sm:p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column - Card Image */}
+              <div className="space-y-4">
+                {/* Card Image with Zoom */}
+                <div
+                  className={`relative rounded-xl overflow-hidden bg-gradient-to-br from-slate-700 to-slate-900 cursor-zoom-in ${
+                    isZoomed ? 'cursor-zoom-out' : ''
+                  }`}
+                  onClick={() => setIsZoomed(!isZoomed)}
+                >
+                  {processedImageUrl ? (
+                    <img
+                      src={processedImageUrl}
+                      alt={card.name}
+                      className={`w-full h-auto transition-transform duration-300 ${
+                        isZoomed ? 'scale-150' : 'scale-100'
+                      }`}
+                    />
+                  ) : (
+                    <div className="aspect-[2.5/3.5] flex items-center justify-center">
+                      <div className="text-center">
+                        <svg className="w-24 h-24 mx-auto text-gray-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p className="text-gray-400">No image available</p>
+                      </div>
+                    </div>
+                  )}
+                  {processedImageUrl && (
+                    <div className="absolute bottom-2 right-2 bg-black/60 text-white px-2 py-1 rounded text-xs">
+                      Click to {isZoomed ? 'zoom out' : 'zoom in'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Stats - Mobile Friendly */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-lg p-4">
+                    <div className="text-purple-300 text-xs font-medium mb-1">Rarity</div>
+                    <div className="text-white font-bold text-lg">{card.rarity || 'N/A'}</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-lg p-4">
+                    <div className="text-blue-300 text-xs font-medium mb-1">Set</div>
+                    <div className="text-white font-bold text-lg truncate" title={card.set}>{card.set}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - Card Details */}
+              <div className="space-y-4">
+                {isEditing ? (
+                  /* Edit Mode */
+                  <div className="space-y-4">
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        <h3 className="text-blue-300 font-semibold">Edit Card Details</h3>
+                      </div>
+
+                      <div className="space-y-4">
+                        {/* Condition */}
+                        <div>
+                          <label className="block text-gray-300 text-sm font-medium mb-2">
+                            Condition
+                          </label>
+                          <select
+                            value={editedCard.condition}
+                            onChange={(e) => setEditedCard({ ...editedCard, condition: e.target.value })}
+                            className="w-full bg-slate-800 text-white border border-purple-500/30 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          >
+                            {conditionOptions.map(option => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Quantity */}
+                        <div>
+                          <label className="block text-gray-300 text-sm font-medium mb-2">
+                            Quantity
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="999"
+                            value={editedCard.quantity}
+                            onChange={(e) => setEditedCard({ ...editedCard, quantity: parseInt(e.target.value) || 1 })}
+                            className="w-full bg-slate-800 text-white border border-purple-500/30 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+
+                        {/* Notes */}
+                        <div>
+                          <label className="block text-gray-300 text-sm font-medium mb-2">
+                            Notes
+                          </label>
+                          <textarea
+                            value={editedCard.notes}
+                            onChange={(e) => setEditedCard({ ...editedCard, notes: e.target.value })}
+                            rows="4"
+                            className="w-full bg-slate-800 text-white border border-purple-500/30 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                            placeholder="Add notes about this card..."
+                          />
+                        </div>
+
+                        {/* Save/Cancel Buttons */}
+                        <div className="flex gap-3 pt-2">
+                          <button
+                            onClick={handleSave}
+                            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-3 rounded-lg font-semibold hover:scale-105 transition-transform"
+                          >
+                            Save Changes
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsEditing(false);
+                              setEditedCard({
+                                condition: card.condition || 'Near Mint',
+                                quantity: card.quantity || 1,
+                                notes: card.notes || ''
+                              });
+                            }}
+                            className="px-4 py-3 bg-slate-700 text-white rounded-lg font-semibold hover:bg-slate-600 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* View Mode */
+                  <div className="space-y-4">
+                    {/* Card Information */}
+                    <div className="bg-slate-800/50 rounded-lg border border-purple-500/20 p-4">
+                      <h3 className="text-purple-300 font-semibold mb-3 flex items-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Card Information
+                      </h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-gray-400 text-xs mb-1">Name</p>
+                          <p className="text-white font-medium">{card.name}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-400 text-xs mb-1">Set</p>
+                          <p className="text-white font-medium">{card.set}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-400 text-xs mb-1">Rarity</p>
+                          <p className="text-white font-medium">{card.rarity || 'N/A'}</p>
+                        </div>
+                        {card.cardId && (
+                          <div>
+                            <p className="text-gray-400 text-xs mb-1">Card ID</p>
+                            <p className="text-white font-medium text-xs break-all">{card.cardId}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Collection Details (if owned) */}
+                    {isOwned && (
+                      <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg p-4">
+                        <h3 className="text-purple-300 font-semibold mb-3 flex items-center gap-2">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                          </svg>
+                          Your Collection Details
+                        </h3>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-gray-400 text-xs mb-1">Condition</p>
+                            <p className="text-white font-medium">{card.condition || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-400 text-xs mb-1">Quantity</p>
+                            <p className="text-white font-medium">{card.quantity || 1}</p>
+                          </div>
+                        </div>
+                        {card.notes && (
+                          <div className="mt-3 pt-3 border-t border-purple-500/20">
+                            <p className="text-gray-400 text-xs mb-1">Notes</p>
+                            <p className="text-white text-sm">{card.notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Market Info Placeholder */}
+                    <div className="bg-slate-800/50 rounded-lg border border-purple-500/20 p-4">
+                      <h3 className="text-purple-300 font-semibold mb-3 flex items-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Market Information
+                      </h3>
+                      <div className="text-center py-4">
+                        <p className="text-gray-400 text-sm">Market pricing data coming soon</p>
+                        <p className="text-gray-500 text-xs mt-1">Integration with TCGPlayer API planned</p>
+                      </div>
+                    </div>
+
+                    {/* Card Statistics */}
+                    <div className="bg-slate-800/50 rounded-lg border border-purple-500/20 p-4">
+                      <h3 className="text-purple-300 font-semibold mb-3 flex items-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        Card Stats
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-400 text-sm">Collection Status</span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            isOwned
+                              ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                              : 'bg-gray-500/20 text-gray-300 border border-gray-500/30'
+                          }`}>
+                            {isOwned ? 'Owned' : 'Not Owned'}
+                          </span>
+                        </div>
+                        {isOwned && card.quantity > 0 && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-400 text-sm">Total Copies</span>
+                            <span className="text-white font-semibold">{card.quantity}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer - Print View Info */}
+        <div className="hidden print:block p-6 border-t border-purple-500/20">
+          <p className="text-gray-400 text-sm text-center">
+            Printed from TCG Collector - {new Date().toLocaleDateString()}
+          </p>
+        </div>
+      </div>
+
+      {/* Print Styles */}
+      <style jsx>{`
+        @media print {
+          .fixed {
+            position: static;
+          }
+          button {
+            display: none !important;
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default CardDetailModal;
