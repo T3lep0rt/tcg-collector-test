@@ -9,6 +9,7 @@ import pg from 'pg';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import cardRoutes from './routes/cards.js';
+import inventoryRoutes from './routes/inventory.js';
 import { PrismaClient } from '@prisma/client';
 
 dotenv.config();
@@ -54,6 +55,7 @@ app.use(
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/cards', cardRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 // Basic routes
 app.get('/api/health', (req, res) => {

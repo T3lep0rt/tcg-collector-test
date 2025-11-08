@@ -13,47 +13,63 @@ datasource db {
 // Example models for TCG Collector
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String   // Hashed password
+  id        String     @id @default(uuid())
+  email     String     @unique
+  password  String     // Hashed password
   name      String?
-  username  String?  @unique
+  username  String?    @unique
   bio       String?
-  avatar    String?  // URL to avatar image
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  cards     Card[]
+  avatar    String?    // URL to avatar image
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  inventory UserCard[] // User's card inventory
 }
 
 model Card {
-  id          String   @id @default(uuid())
-  cardId      String?  @unique  // Pokemon TCG API ID
-  name        String
-  set         String
-  setName     String?
-  number      String?
-  rarity      String?
-  types       String?  // JSON string array
-  supertype   String?
-  subtypes    String?  // JSON string array
-  hp          String?
-  artist      String?
-  flavorText  String?
-  attacks     String?  // JSON string
-  weaknesses  String?  // JSON string
-  resistances String?  // JSON string
-  retreatCost String?  // JSON string array
-  prices      String?  // JSON string
-  condition   String?
-  quantity    Int      @default(1)
-  imageUrl    String?
+  id            String     @id @default(uuid())
+  cardId        String     @unique // Pokemon TCG API ID
+  name          String
+  set           String
+  setName       String?
+  number        String?
+  rarity        String?
+  types         String?    // JSON string array
+  supertype     String?
+  subtypes      String?    // JSON string array
+  hp            String?
+  artist        String?
+  flavorText    String?
+  attacks       String?    // JSON string
+  weaknesses    String?    // JSON string
+  resistances   String?    // JSON string
+  retreatCost   String?    // JSON string array
+  prices        String?    // JSON string
+  imageUrl      String?
   imageUrlHiRes String?
-  notes       String?
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  userCards     UserCard[] // Users who own this card
 
+  @@index([cardId])
+  @@index([set])
+  @@index([rarity])
+}
+
+// User's card inventory - many-to-many relationship between User and Card
+model UserCard {
+  id        String   @id @default(uuid())
+  userId    String
+  cardId    String   // References Card.cardId (Pokemon TCG API ID)
+  quantity  Int      @default(1)
+  condition String?  @default("Near Mint")
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card Card @relation(fields: [cardId], references: [cardId], onDelete: Cascade)
+
+  @@unique([userId, cardId]) // Each user can only have one entry per card
   @@index([userId])
   @@index([cardId])
 }

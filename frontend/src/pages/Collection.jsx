@@ -24,7 +24,8 @@ export default function Collection() {
   const fetchCards = async () => {
     try {
       setLoading(true);
-      const response = await api.getCards();
+      // Fetch all cards for browse view (includes ownership info)
+      const response = await api.getBrowseCards();
       setAllCards(response.cards || []);
       setError(null);
     } catch (err) {
@@ -43,11 +44,10 @@ export default function Collection() {
 
   const handleAddToCollection = async (card) => {
     try {
-      // Update the card to add userId
-      await api.updateCard(card.id, {
-        ...card,
-        userId: user.id,
-        quantity: 1
+      // Add card to user's inventory using the card's Pokemon TCG API ID
+      await api.addToInventory(card.cardId, {
+        quantity: 1,
+        condition: 'Near Mint'
       });
       // Refresh cards
       fetchCards();
@@ -62,12 +62,8 @@ export default function Collection() {
 
   const handleRemoveFromCollection = async (card) => {
     try {
-      // Update the card to remove userId
-      await api.updateCard(card.id, {
-        ...card,
-        userId: null,
-        quantity: 1
-      });
+      // Remove card from user's inventory using the card's Pokemon TCG API ID
+      await api.removeFromInventory(card.cardId);
       // Refresh cards
       fetchCards();
     } catch (err) {
