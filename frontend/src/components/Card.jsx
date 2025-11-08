@@ -2,6 +2,34 @@ import { useState } from 'react';
 
 const Card = ({ card, onClick }) => {
   const [isFlipped, setIsFlipped] = useState(false);
+  const [rotateX, setRotateX] = useState(0);
+  const [rotateY, setRotateY] = useState(0);
+  const [glarePosition, setGlarePosition] = useState({ x: 50, y: 50 });
+  const [isHovering, setIsHovering] = useState(false);
+
+  // Check if card is a crown card
+  // Supports both numeric values (>= 7) and text-based rarity strings
+  const isCrownCard = (rarity) => {
+    if (!rarity) return false;
+
+    const rarityStr = rarity.toString().toLowerCase();
+
+    // Check for text-based crown indicators (TCGdex format)
+    if (rarityStr.includes('crown') ||
+        rarityStr.includes('ultra rare') ||
+        rarityStr.includes('special illustration rare') ||
+        rarityStr.includes('hyper rare')) {
+      return true;
+    }
+
+    // Check for numeric format (Pokemon Zone seed format)
+    const rarityNum = parseInt(rarity);
+    if (!isNaN(rarityNum) && rarityNum >= 7) {
+      return true;
+    }
+
+    return false;
+  };
 
   const getRarityColor = (rarity) => {
     const rarityLower = rarity?.toLowerCase() || '';
@@ -16,6 +44,11 @@ const Card = ({ card, onClick }) => {
 
   const getRarityBadge = (rarity) => {
     if (!rarity) return null;
+
+    // Crown cards don't show a badge - their effects speak for themselves
+    if (isCrownCard(rarity)) {
+      return null;
+    }
 
     const rarityLower = rarity.toLowerCase();
     if (rarityLower.includes('holo') || rarityLower.includes('rare')) {
@@ -34,6 +67,35 @@ const Card = ({ card, onClick }) => {
     if (onClick) {
       onClick(card);
     }
+  };
+
+  const handleMouseMove = (e) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+
+    // Calculate mouse position relative to card center (0-100%)
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    // Calculate rotation angles (max ±15 degrees)
+    // Center is 50%, so we subtract 50 and scale
+    const rotateYValue = ((x - 50) / 50) * 15; // -15 to +15 degrees
+    const rotateXValue = ((y - 50) / 50) * -15; // -15 to +15 degrees (inverted)
+
+    setRotateX(rotateXValue);
+    setRotateY(rotateYValue);
+    setGlarePosition({ x, y });
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovering(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+    setRotateX(0);
+    setRotateY(0);
+    setGlarePosition({ x: 50, y: 50 });
   };
 
   // Process and validate image URL
@@ -68,19 +130,52 @@ const Card = ({ card, onClick }) => {
     <div
       className="group relative w-full aspect-[2.5/3.5] cursor-pointer perspective-1000"
       onClick={handleCardClick}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       style={{ perspective: '1000px' }}
     >
       {/* Card Container with 3D transform */}
       <div
-        className={`relative w-full h-full transition-all duration-700 transform-style-3d ${
+        className={`relative w-full h-full transition-all transform-style-3d ${
           isFlipped ? 'rotate-y-180' : ''
         }`}
+        style={{
+          transform: `rotateX(${rotateX}deg) rotateY(${rotateY}deg) ${isFlipped ? 'rotateY(180deg)' : ''}`,
+          transition: isHovering ? 'transform 0.1s ease-out' : 'transform 0.5s ease-out',
+        }}
       >
         {/* Front of card */}
         <div className="absolute inset-0 backface-hidden">
           <div className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl transition-all duration-300 transform group-hover:scale-105 group-hover:shadow-3xl">
-            {/* Holographic effect overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none animate-shimmer" />
+            {/* Holographic effect overlay - golden for crown cards */}
+            {isCrownCard(card.rarity) ? (
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/15 via-amber-400/15 to-yellow-600/15 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none animate-golden-shimmer" />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none animate-shimmer" />
+            )}
+
+            {/* Sparkles for crown cards */}
+            {isCrownCard(card.rarity) && (
+              <>
+                <div className="absolute top-[15%] left-[20%] w-2 h-2 bg-white rounded-full opacity-0 group-hover:opacity-70 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 1.5s ease-in-out infinite' }} />
+                <div className="absolute top-[25%] right-[15%] w-1.5 h-1.5 bg-white rounded-full opacity-0 group-hover:opacity-60 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 2s ease-in-out infinite 0.3s' }} />
+                <div className="absolute bottom-[30%] left-[15%] w-1 h-1 bg-white rounded-full opacity-0 group-hover:opacity-80 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 1.8s ease-in-out infinite 0.6s' }} />
+                <div className="absolute bottom-[20%] right-[25%] w-1.5 h-1.5 bg-white rounded-full opacity-0 group-hover:opacity-70 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 2.2s ease-in-out infinite 0.9s' }} />
+                <div className="absolute top-[45%] right-[10%] w-1 h-1 bg-white rounded-full opacity-0 group-hover:opacity-60 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 1.7s ease-in-out infinite 1.2s' }} />
+              </>
+            )}
+
+            {/* Dynamic glare effect that follows mouse - golden for crown cards */}
+            <div
+              className="absolute inset-0 z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              style={{
+                background: isCrownCard(card.rarity)
+                  ? `radial-gradient(circle at ${glarePosition.x}% ${glarePosition.y}%, rgba(255, 215, 0, 0.5) 0%, rgba(255, 223, 0, 0.25) 20%, transparent 50%)`
+                  : `radial-gradient(circle at ${glarePosition.x}% ${glarePosition.y}%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.3) 20%, transparent 50%)`,
+                mixBlendMode: 'overlay',
+              }}
+            />
 
             {/* Rarity badge */}
             {getRarityBadge(card.rarity)}
@@ -145,8 +240,14 @@ const Card = ({ card, onClick }) => {
               )}
             </div>
 
-            {/* Border glow effect */}
-            <div className="absolute inset-0 rounded-xl border-2 border-transparent group-hover:border-white/30 transition-colors duration-300 pointer-events-none" />
+            {/* Border glow effect - golden for crown cards */}
+            <div
+              className={`absolute inset-0 rounded-xl border-2 border-transparent transition-colors duration-300 pointer-events-none ${
+                isCrownCard(card.rarity)
+                  ? 'group-hover:border-yellow-400/30 group-hover:shadow-[0_0_15px_rgba(255,215,0,0.3)]'
+                  : 'group-hover:border-white/30'
+              }`}
+            />
           </div>
         </div>
       </div>
