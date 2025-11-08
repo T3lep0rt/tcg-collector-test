@@ -36,6 +36,14 @@ const Card = ({ card, onClick }) => {
     }
   };
 
+  // Check if imageUrl is a valid full URL
+  const isValidImageUrl = (url) => {
+    if (!url) return false;
+    return url.startsWith('http://') || url.startsWith('https://');
+  };
+
+  const hasValidImage = isValidImageUrl(card.imageUrl);
+
   return (
     <div
       className="group relative w-full aspect-[2.5/3.5] cursor-pointer perspective-1000"
@@ -59,7 +67,7 @@ const Card = ({ card, onClick }) => {
 
             {/* Card image */}
             <div className="relative w-full h-full bg-gradient-to-br from-slate-700 to-slate-900">
-              {card.imageUrl ? (
+              {hasValidImage ? (
                 <img
                   src={card.imageUrl}
                   alt={card.name}
@@ -74,7 +82,7 @@ const Card = ({ card, onClick }) => {
               {/* Fallback when no image */}
               <div
                 className={`absolute inset-0 flex flex-col items-center justify-center p-4 ${
-                  card.imageUrl ? 'hidden' : 'flex'
+                  hasValidImage ? 'hidden' : 'flex'
                 }`}
               >
                 <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${getRarityColor(card.rarity)} mb-3 flex items-center justify-center shadow-lg`}>
