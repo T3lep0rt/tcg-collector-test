@@ -6,10 +6,12 @@ A beautiful full-stack application for managing trading card game (TCG) collecti
 
 - 🎨 **Pokemon TCG Pocket-Style UI** - Beautiful card display with holographic effects
 - ✨ **3D Hover Effects** - Interactive card animations with shimmer effects
+- 📑 **Browse & Collection Views** - Browse available cards and manage your collection
 - 🔍 **Advanced Filtering** - Filter by set, rarity, and sort options
 - 📊 **Collection Stats** - Track your total cards, sets, and rare cards
 - 💫 **Responsive Design** - Works perfectly on desktop and mobile
 - 🎯 **Card Details Modal** - Click any card to view detailed information
+- ➕ **Add/Remove Cards** - Easily manage your collection with hover actions
 - 🌈 **Gradient Backgrounds** - Modern, eye-catching color schemes
 
 ## Tech Stack
@@ -33,10 +35,11 @@ tcg-collector-test/
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── Card.jsx          # Individual card component with 3D effects
-│   │   │   └── CardGrid.jsx      # Grid layout with filters and stats
-│   │   ├── App.jsx
+│   │   │   ├── Browse.jsx        # Browse available cards view
+│   │   │   └── Collection.jsx    # Personal collection view with stats
+│   │   ├── App.jsx               # Main app with tab navigation
 │   │   ├── main.jsx
-│   │   └── index.css
+│   │   └── index.css             # Custom animations and styles
 │   ├── index.html
 │   ├── vite.config.js
 │   ├── tailwind.config.js
@@ -250,20 +253,30 @@ The application includes demo data that will be displayed if the backend is not 
 
 ## UI Features
 
+### Two-View System
+- **My Collection**: View only cards you own with 3D hover effects
+  - Remove cards with hover button
+  - View collection statistics
+  - Filter and sort your owned cards
+- **Browse Cards**: Discover all available cards
+  - Add cards to collection with hover button
+  - Filter and search available cards
+  - Preview before adding
+
 ### Card Display
 - **Holographic Effects**: Cards shimmer with a rainbow gradient on hover
 - **3D Transforms**: Cards scale and lift when you hover over them
 - **Rarity Badges**: Special badges for rare and holographic cards
-- **Quantity Indicators**: Shows how many copies you own
+- **Quantity Indicators**: Shows how many copies you own (Collection view)
 - **Responsive Grid**: Adapts from 2 columns on mobile to 6 on large screens
 
 ### Filtering & Sorting
 - Filter by **Set** (Base Set, Fossil, etc.)
 - Filter by **Rarity** (Common, Rare Holo, etc.)
-- Sort by **Name**, **Set**, **Rarity**, or **Quantity**
+- Sort by **Name**, **Set**, **Rarity**, or **Quantity** (Collection only)
 
 ### Collection Stats
-- Total number of cards
+- Total number of unique cards owned
 - Number of unique sets
 - Count of rare cards
 - Total quantity across all cards
