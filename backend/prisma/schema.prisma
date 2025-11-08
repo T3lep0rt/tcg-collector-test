@@ -13,42 +13,47 @@ datasource db {
 // Example models for TCG Collector
 
 model User {
-  id        String     @id @default(uuid())
-  email     String     @unique
-  password  String     // Hashed password
-  name      String?
-  username  String?    @unique
-  bio       String?
-  avatar    String?    // URL to avatar image
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  inventory UserCard[] // User's card inventory
+  id             String          @id @default(uuid())
+  email          String          @unique
+  password       String          // Hashed password
+  name           String?
+  username       String?         @unique
+  bio            String?
+  avatar         String?         // URL to avatar image
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  inventory      UserCard[]      // User's card inventory
+  tradesOffered  Trade[]         @relation("TradesOffered")
+  tradesReceived Trade[]         @relation("TradesReceived")
+  tradeResponses TradeResponse[]
 }
 
 model Card {
-  id            String     @id @default(uuid())
-  cardId        String     @unique // Pokemon TCG API ID
-  name          String
-  set           String
-  setName       String?
-  number        String?
-  rarity        String?
-  types         String?    // JSON string array
-  supertype     String?
-  subtypes      String?    // JSON string array
-  hp            String?
-  artist        String?
-  flavorText    String?
-  attacks       String?    // JSON string
-  weaknesses    String?    // JSON string
-  resistances   String?    // JSON string
-  retreatCost   String?    // JSON string array
-  prices        String?    // JSON string
-  imageUrl      String?
-  imageUrlHiRes String?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  userCards     UserCard[] // Users who own this card
+  id             String          @id @default(uuid())
+  cardId         String          @unique // Pokemon TCG API ID
+  name           String
+  set            String
+  setName        String?
+  number         String?
+  rarity         String?
+  types          String?         // JSON string array
+  supertype      String?
+  subtypes       String?         // JSON string array
+  hp             String?
+  artist         String?
+  flavorText     String?
+  attacks        String?         // JSON string
+  weaknesses     String?         // JSON string
+  resistances    String?         // JSON string
+  retreatCost    String?         // JSON string array
+  prices         String?         // JSON string
+  imageUrl       String?
+  imageUrlHiRes  String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  userCards      UserCard[]      // Users who own this card
+  tradesOffered  Trade[]
+  tradeResponses TradeResponse[]
 
   @@index([cardId])
   @@index([set])
@@ -72,4 +77,47 @@ model UserCard {
   @@unique([userId, cardId]) // Each user can only have one entry per card
   @@index([userId])
   @@index([cardId])
+}
+
+// Trade offers between users
+model Trade {
+  id               String      @id @default(uuid())
+  offererId        String      // User offering the card
+  offeredCardId    String      // Card being offered (Pokemon TCG API ID)
+  requestedRarity  String      // Rarity of cards requested in exchange
+  targetUserId     String?     // Optional: specific user to trade with, null means "anyone"
+  status           String      @default("pending") // pending, accepted, rejected, cancelled
+  message          String?     // Optional message from offerer
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  offerer          User        @relation("TradesOffered", fields: [offererId], references: [id], onDelete: Cascade)
+  targetUser       User?       @relation("TradesReceived", fields: [targetUserId], references: [id], onDelete: Cascade)
+  offeredCard      Card        @relation(fields: [offeredCardId], references: [cardId], onDelete: Cascade)
+  responses        TradeResponse[]
+
+  @@index([offererId])
+  @@index([targetUserId])
+  @@index([status])
+  @@index([requestedRarity])
+}
+
+// Responses to trade offers (which card the responder is offering)
+model TradeResponse {
+  id              String   @id @default(uuid())
+  tradeId         String
+  responderId     String   // User responding to the trade
+  responseCardId  String   // Card the responder is offering (Pokemon TCG API ID)
+  status          String   @default("pending") // pending, accepted, rejected
+  message         String?  // Optional message from responder
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  trade           Trade    @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  responder       User     @relation(fields: [responderId], references: [id], onDelete: Cascade)
+  responseCard    Card     @relation(fields: [responseCardId], references: [cardId], onDelete: Cascade)
+
+  @@index([tradeId])
+  @@index([responderId])
+  @@index([status])
 }

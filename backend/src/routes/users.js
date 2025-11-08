@@ -10,6 +10,60 @@ import { requireAuth } from '../middleware/auth.js';
 const router = express.Router();
 
 /**
+ * GET /api/users
+ * Get all users (for community/trading)
+ */
+router.get('/', async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const where = {};
+
+    if (search) {
+      where.OR = [
+        { username: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        skip,
+        take: parseInt(limit),
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          avatar: true,
+          bio: true,
+          createdAt: true,
+          _count: {
+            select: { inventory: true }
+          }
+        }
+      }),
+      prisma.user.count({ where })
+    ]);
+
+    res.json({
+      users,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ error: 'Failed to get users' });
+  }
+});
+
+/**
  * GET /api/users/:id
  * Get user profile by ID (public)
  */
@@ -27,7 +81,7 @@ router.get('/:id', async (req, res) => {
         bio: true,
         createdAt: true,
         _count: {
-          select: { cards: true }
+          select: { inventory: true }
         }
       }
     });
@@ -97,7 +151,7 @@ router.put('/profile', requireAuth, async (req, res) => {
 router.get('/:id/collection', async (req, res) => {
   try {
     const { id } = req.params;
-    const { page = 1, limit = 50, set, rarity, condition } = req.query;
+    const { page = 1, limit = 50, set, rarity, condition, search } = req.query;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
@@ -106,20 +160,42 @@ router.get('/:id/collection', async (req, res) => {
       userId: id
     };
 
-    if (set) where.set = set;
-    if (rarity) where.rarity = rarity;
+    // Add card filters
+    const cardWhere = {};
+    if (set) cardWhere.set = set;
+    if (rarity) cardWhere.rarity = rarity;
+    if (search) {
+      cardWhere.name = { contains: search, mode: 'insensitive' };
+    }
+
+    if (Object.keys(cardWhere).length > 0) {
+      where.card = cardWhere;
+    }
+
     if (condition) where.condition = condition;
 
-    // Get cards with pagination
-    const [cards, total] = await Promise.all([
-      prisma.card.findMany({
+    // Get user's cards with pagination
+    const [userCards, total] = await Promise.all([
+      prisma.userCard.findMany({
         where,
         skip,
         take: parseInt(limit),
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        include: {
+          card: true
+        }
       }),
-      prisma.card.count({ where })
+      prisma.userCard.count({ where })
     ]);
+
+    // Transform to include card details at top level
+    const cards = userCards.map(uc => ({
+      ...uc.card,
+      quantity: uc.quantity,
+      condition: uc.condition,
+      notes: uc.notes,
+      userCardId: uc.id
+    }));
 
     res.json({
       cards,
