@@ -43,7 +43,7 @@ function mapCardData(card, setId, setName) {
     set: setId, // Use for filtering (e.g., 'A1', 'A2')
     setName: setName, // Display name
     number: card.localId || card.id.split('-').pop(), // Card number in set
-    rarity: card.rarity?.join(', ') || card.rarity || null,
+    rarity: Array.isArray(card.rarity) ? card.rarity.join(', ') : card.rarity || null,
     types: card.types ? JSON.stringify(card.types) : null,
     supertype: card.category || null,
     hp: card.hp?.toString() || null,
