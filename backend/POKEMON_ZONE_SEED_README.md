@@ -29,24 +29,62 @@ The script automatically discovers **all available sets** from pokemon-zone.com 
 - **Mythical Island** (a1a)
 - And any new sets added to the website in the future!
 
+## Important: Cloudflare Protection
+
+Pokemon-zone.com is protected by **Cloudflare bot detection** which blocks simple HTTP requests. We provide two versions of the script:
+
+### ✅ Recommended: Puppeteer Version (Bypasses Cloudflare)
+
+Uses a headless Chrome browser to bypass Cloudflare's protection.
+
+**Pros:**
+- ✅ Works reliably with Cloudflare protection
+- ✅ Handles JavaScript challenges automatically
+- ✅ More robust against anti-bot measures
+
+**Cons:**
+- Slower (launches a browser)
+- Higher resource usage
+- Requires Chromium installation
+
+### ⚠️ Alternative: Fetch Version (May be blocked)
+
+Uses Node.js native fetch - faster but blocked by Cloudflare.
+
+**Pros:**
+- Faster execution
+- Lower resource usage
+
+**Cons:**
+- ❌ Currently blocked by Cloudflare (HTTP 403)
+- May work if Cloudflare protection is relaxed
+
 ## Usage
 
 ### Prerequisites
 
-1. Ensure dependencies are installed:
+1. **Install dependencies** (including Puppeteer):
    ```bash
    npm install
    ```
 
-2. Ensure database is set up and migrated:
+   Note: Puppeteer will automatically download Chromium (~170-280MB)
+
+2. **Ensure database is set up and migrated:**
    ```bash
    npm run prisma:migrate
    ```
 
 ### Running the Script
 
+**Recommended (Puppeteer version):**
 ```bash
-node prisma/seedFromPokemonZone.js
+npm run seed:pokemon-zone
+```
+
+**Alternative (Fetch version - currently blocked by Cloudflare):**
+```bash
+npm run seed:pokemon-zone:fetch
 ```
 
 ### Output
@@ -193,11 +231,20 @@ To start with a fresh database, uncomment these lines in the `main()` function:
 
 ## Technical Details
 
-### Implementation
+### Two Implementations
 
+**1. seedFromPokemonZonePuppeteer.js** (Recommended)
+- **Browser Automation**: Uses Puppeteer with headless Chrome
+- **Cloudflare Bypass**: Executes JavaScript to pass bot challenges
+- **HTML Parsing**: Regex-based parsing after page load
+- **Database**: Prisma ORM with PostgreSQL
+- **Performance**: Slower but reliable
+
+**2. seedFromPokemonZone.js** (Fallback)
 - **HTTP Requests**: Uses Node.js built-in `fetch()` (Node 18+)
 - **HTML Parsing**: Regex-based parsing for specific HTML patterns
 - **Database**: Prisma ORM with PostgreSQL
+- **Performance**: Fast but blocked by Cloudflare
 - **Error Handling**: Continues processing on individual card failures
 
 ### Functions
@@ -248,7 +295,7 @@ The original PHP script functionality has been preserved:
 
 ## Troubleshooting
 
-### "Cannot find package '@prisma/client'"
+### "Cannot find package '@prisma/client'" or "Cannot find module 'puppeteer'"
 Ensure dependencies are installed:
 ```bash
 cd backend
@@ -263,10 +310,44 @@ DATABASE_URL="postgresql://user:password@localhost:5432/tcg_collector?schema=pub
 ```
 
 ### "403 Forbidden" from pokemon-zone.com
-The script includes User-Agent headers, but the site may be blocking requests. Try:
-- Adding more delay between requests (increase timeout in the code)
-- Running the script at different times
-- Checking if the website structure has changed
+**This is Cloudflare bot protection.** Solutions:
+
+1. **Use the Puppeteer version (recommended):**
+   ```bash
+   npm run seed:pokemon-zone
+   ```
+
+2. **If Puppeteer fails:**
+   - Ensure Chromium downloaded successfully (check during `npm install`)
+   - Try running with visible browser (change `headless: 'new'` to `headless: false` in code)
+   - Check system has enough resources (~500MB RAM for browser)
+
+3. **If both versions fail:**
+   - Website may have updated their protection
+   - Try running at different times (off-peak hours)
+   - Contact site administrators for API access
+
+### Puppeteer "Error: Failed to launch the browser process"
+**Linux users:** Install required dependencies:
+```bash
+sudo apt-get install -y \
+  chromium-browser \
+  libx11-xcb1 \
+  libxcomposite1 \
+  libxcursor1 \
+  libxdamage1 \
+  libxi6 \
+  libxtst6 \
+  libnss3 \
+  libcups2 \
+  libxss1 \
+  libxrandr2 \
+  libasound2 \
+  libatk1.0-0 \
+  libgtk-3-0
+```
+
+**Windows/Mac:** Puppeteer should work out of the box with `npm install`
 
 ### Cards not being created
 - Check console output for specific errors
@@ -276,12 +357,14 @@ The script includes User-Agent headers, but the site may be blocking requests. T
 ## Notes
 
 - The script **automatically discovers all sets** - no manual updates needed when new sets are released
+- **Puppeteer version is recommended** to bypass Cloudflare bot protection
 - Card filtering by set is easy using the `set` field (slug format)
-- The script respects the source website with appropriate delays (500ms between cards, 1s between sets)
+- The script respects the source website with appropriate delays (500ms between cards, 2s between sets for Puppeteer)
 - Card images are linked (not downloaded) to save space
 - The script is idempotent - safe to run multiple times
 - Progress is logged in real-time for monitoring
 - Overall statistics are provided at the end of the run
+- Puppeteer will download ~170-280MB of Chromium on first install
 
 ## Future Enhancements
 
