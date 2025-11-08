@@ -11,12 +11,15 @@ async function fetchCardLinks(url) {
   try {
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Connection': 'keep-alive'
       }
     });
 
     if (!response.ok) {
-      console.error(`Error fetching URL: ${url}`);
+      console.error(`Error fetching URL: ${url} - HTTP ${response.status} ${response.statusText}`);
       return [];
     }
 
@@ -53,12 +56,15 @@ async function fetchAllSets() {
 
     const response = await fetch(setsUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Connection': 'keep-alive'
       }
     });
 
     if (!response.ok) {
-      console.error(`Error fetching sets page: ${setsUrl}`);
+      console.error(`Error fetching sets page: ${setsUrl} - HTTP ${response.status} ${response.statusText}`);
       return [];
     }
 
@@ -183,12 +189,15 @@ async function generateCardsForExpansion(url, expansionName, setSlug) {
     try {
       const response = await fetch(cardUrl, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Connection': 'keep-alive'
         }
       });
 
       if (!response.ok) {
-        console.error(`Could not fetch URL: ${cardUrl}`);
+        console.error(`Could not fetch URL: ${cardUrl} - HTTP ${response.status} ${response.statusText}`);
         results.push({ error: 'Could not fetch URL: ' + cardUrl });
         continue;
       }
