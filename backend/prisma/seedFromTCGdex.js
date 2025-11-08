@@ -8,11 +8,14 @@ const SERIES_ID = 'tcgp'; // Pokemon TCG Pocket series
 /**
  * Fetches data from TCGdex API
  * @param {string} endpoint - API endpoint (e.g., '/series/tcgp')
+ * @param {boolean} silent - If true, don't log the fetch
  * @returns {Promise<any>} JSON response
  */
-async function fetchAPI(endpoint) {
+async function fetchAPI(endpoint, silent = false) {
   const url = `${API_BASE}${endpoint}`;
-  console.log(`  Fetching: ${url}`);
+  if (!silent) {
+    console.log(`  Fetching: ${url}`);
+  }
 
   try {
     const response = await fetch(url);
@@ -83,19 +86,19 @@ async function seedSet(setInfo) {
   let added = 0;
   let skipped = 0;
   let errors = 0;
+  const progressInterval = 100; // Log progress every 100 cards
 
-  for (const cardBrief of cards) {
+  for (let i = 0; i < cards.length; i++) {
+    const cardBrief = cards[i];
+
     try {
-      // Fetch full card details
-      const card = await fetchAPI(`/cards/${cardBrief.id}`);
+      // Fetch full card details (silent mode to reduce logs)
+      const card = await fetchAPI(`/cards/${cardBrief.id}`, true);
 
       if (!card) {
-        console.log(`  ⚠️  Could not fetch details for ${cardBrief.id}`);
         errors++;
         continue;
       }
-
-      console.log(`  Processing: ${card.name} (${card.localId || card.id})`);
 
       // Check if card already exists
       const existing = await prisma.card.findFirst({
@@ -105,26 +108,28 @@ async function seedSet(setInfo) {
       });
 
       if (existing) {
-        console.log(`    ○ Already exists`);
         skipped++;
-        continue;
+      } else {
+        // Map and create card
+        const cardData = mapCardData(card, setId, setName);
+
+        await prisma.card.create({
+          data: cardData
+        });
+
+        added++;
       }
-
-      // Map and create card
-      const cardData = mapCardData(card, setId, setName);
-
-      await prisma.card.create({
-        data: cardData
-      });
-
-      console.log(`    ✓ Added to database`);
-      added++;
 
       // Small delay to be respectful
       await new Promise(resolve => setTimeout(resolve, 100));
 
+      // Progress update every N cards
+      if ((i + 1) % progressInterval === 0 || i === cards.length - 1) {
+        console.log(`  Progress: ${i + 1}/${cards.length} cards | Added: ${added} | Skipped: ${skipped} | Errors: ${errors}`);
+      }
+
     } catch (error) {
-      console.error(`  ❌ Error processing card:`, error.message);
+      console.error(`  ❌ Error at card ${i + 1}:`, error.message);
       errors++;
     }
   }
