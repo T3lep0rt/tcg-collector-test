@@ -56,9 +56,8 @@ function mapCardData(card, setId, setName) {
     resistances: card.resistances ? JSON.stringify(card.resistances) : null,
     retreatCost: card.retreat ? JSON.stringify([card.retreat]) : null,
     imageUrl: card.image || null,
-    imageUrlHiRes: card.image ? card.image.replace('/low/', '/high/') : null,
-    condition: 'Near Mint',
-    quantity: 1
+    imageUrlHiRes: card.image ? card.image.replace('/low/', '/high/') : null
+    // Note: condition and quantity are now stored in UserCard table, not Card table
   };
 }
 
