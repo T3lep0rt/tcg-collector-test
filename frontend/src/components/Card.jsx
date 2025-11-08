@@ -2,6 +2,10 @@ import { useState } from 'react';
 
 const Card = ({ card, onClick }) => {
   const [isFlipped, setIsFlipped] = useState(false);
+  const [rotateX, setRotateX] = useState(0);
+  const [rotateY, setRotateY] = useState(0);
+  const [glarePosition, setGlarePosition] = useState({ x: 50, y: 50 });
+  const [isHovering, setIsHovering] = useState(false);
 
   const getRarityColor = (rarity) => {
     const rarityLower = rarity?.toLowerCase() || '';
@@ -36,6 +40,35 @@ const Card = ({ card, onClick }) => {
     }
   };
 
+  const handleMouseMove = (e) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+
+    // Calculate mouse position relative to card center (0-100%)
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    // Calculate rotation angles (max ±15 degrees)
+    // Center is 50%, so we subtract 50 and scale
+    const rotateYValue = ((x - 50) / 50) * 15; // -15 to +15 degrees
+    const rotateXValue = ((y - 50) / 50) * -15; // -15 to +15 degrees (inverted)
+
+    setRotateX(rotateXValue);
+    setRotateY(rotateYValue);
+    setGlarePosition({ x, y });
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovering(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+    setRotateX(0);
+    setRotateY(0);
+    setGlarePosition({ x: 50, y: 50 });
+  };
+
   // Process and validate image URL
   const getProcessedImageUrl = (url) => {
     if (!url) return null;
@@ -68,19 +101,35 @@ const Card = ({ card, onClick }) => {
     <div
       className="group relative w-full aspect-[2.5/3.5] cursor-pointer perspective-1000"
       onClick={handleCardClick}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       style={{ perspective: '1000px' }}
     >
       {/* Card Container with 3D transform */}
       <div
-        className={`relative w-full h-full transition-all duration-700 transform-style-3d ${
+        className={`relative w-full h-full transition-all transform-style-3d ${
           isFlipped ? 'rotate-y-180' : ''
         }`}
+        style={{
+          transform: `rotateX(${rotateX}deg) rotateY(${rotateY}deg) ${isFlipped ? 'rotateY(180deg)' : ''}`,
+          transition: isHovering ? 'transform 0.1s ease-out' : 'transform 0.5s ease-out',
+        }}
       >
         {/* Front of card */}
         <div className="absolute inset-0 backface-hidden">
           <div className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl transition-all duration-300 transform group-hover:scale-105 group-hover:shadow-3xl">
             {/* Holographic effect overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none animate-shimmer" />
+
+            {/* Dynamic glare effect that follows mouse */}
+            <div
+              className="absolute inset-0 z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              style={{
+                background: `radial-gradient(circle at ${glarePosition.x}% ${glarePosition.y}%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.3) 20%, transparent 50%)`,
+                mixBlendMode: 'overlay',
+              }}
+            />
 
             {/* Rarity badge */}
             {getRarityBadge(card.rarity)}
