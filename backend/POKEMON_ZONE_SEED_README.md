@@ -234,12 +234,13 @@ To start with a fresh database, uncomment these lines in the `main()` function:
 ### Two Implementations
 
 **1. seedFromPokemonZonePuppeteer.js** (Recommended)
-- **Browser Automation**: Uses Puppeteer with headless Chrome
-- **Cloudflare Bypass**: Executes JavaScript to pass bot challenges
+- **Browser Automation**: Uses Puppeteer Extra with headless Chrome
+- **Stealth Plugin**: `puppeteer-extra-plugin-stealth` for advanced anti-detection
+- **Cloudflare Bypass**: Executes JavaScript and mimics real browser behavior
 - **React Content Waiting**: Waits for `.card-grid` elements to ensure client-side rendered content loads
 - **HTML Parsing**: Regex-based parsing after page load
 - **Database**: Prisma ORM with PostgreSQL
-- **Performance**: Slower but reliable
+- **Performance**: Slower but most reliable against bot detection
 
 **2. seedFromPokemonZone.js** (Fallback)
 - **HTTP Requests**: Uses Node.js built-in `fetch()` (Node 18+)
@@ -313,20 +314,30 @@ DATABASE_URL="postgresql://user:password@localhost:5432/tcg_collector?schema=pub
 ### "403 Forbidden" from pokemon-zone.com
 **This is Cloudflare bot protection.** Solutions:
 
-1. **Use the Puppeteer version (recommended):**
+1. **Install stealth dependencies (if not already):**
+   ```bash
+   npm install
+   ```
+   The script now uses `puppeteer-extra-plugin-stealth` for advanced anti-detection.
+
+2. **Run the Puppeteer version with stealth plugin:**
    ```bash
    npm run seed:pokemon-zone
    ```
 
-2. **If Puppeteer fails:**
-   - Ensure Chromium downloaded successfully (check during `npm install`)
-   - Try running with visible browser (change `headless: 'new'` to `headless: false` in code)
-   - Check system has enough resources (~500MB RAM for browser)
+3. **If still getting Cloudflare challenges, try visible browser mode:**
+   - Edit `seedFromPokemonZonePuppeteer.js` line ~361
+   - Change `headless: 'new'` to `headless: false`
+   - This opens a visible browser (slower but highest success rate)
+   - You'll see the browser window and can verify it passes Cloudflare
 
-3. **If both versions fail:**
-   - Website may have updated their protection
+4. **If both versions fail:**
+   - Your IP may be temporarily blocked by Cloudflare
    - Try running at different times (off-peak hours)
-   - Contact site administrators for API access
+   - Wait 30-60 minutes before retrying
+   - Consider using a VPN if blocking persists
+   - Check site's robots.txt and terms of service
+   - Contact site administrators for API access if available
 
 ### Puppeteer "Error: Failed to launch the browser process"
 **Linux users:** Install required dependencies:
