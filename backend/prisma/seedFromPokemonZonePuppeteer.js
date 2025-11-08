@@ -19,20 +19,30 @@ async function fetchWithPuppeteer(page, url) {
     });
 
     // Wait for React-rendered content (card grid or card links)
+    let selectorFound = 'none';
     try {
       // Try to wait for the card grid first
       await page.waitForSelector('.card-grid', { timeout: 15000 });
+      selectorFound = '.card-grid';
+      console.log(`  ✓ Found selector: .card-grid`);
     } catch (e) {
+      console.log(`  ✗ Selector not found: .card-grid`);
       // If no card grid, try waiting for card links
       try {
         await page.waitForSelector('a[href*="/cards/"]', { timeout: 15000 });
+        selectorFound = 'a[href*="/cards/"]';
+        console.log(`  ✓ Found selector: a[href*="/cards/"]`);
       } catch (e2) {
+        console.log(`  ✗ Selector not found: a[href*="/cards/"]`);
         // If neither exists, just wait a bit for any dynamic content
+        console.log(`  ⏳ Waiting 3 seconds for dynamic content...`);
         await new Promise(resolve => setTimeout(resolve, 3000));
       }
     }
 
     const html = await page.content();
+    console.log(`  📄 HTML length: ${html.length} characters`);
+
     return html;
   } catch (error) {
     console.error(`  Error fetching ${url}:`, error.message);
@@ -50,8 +60,28 @@ async function fetchCardLinks(page, url) {
   const html = await fetchWithPuppeteer(page, url);
 
   if (!html) {
+    console.log(`  ⚠️  No HTML content received`);
     return [];
   }
+
+  console.log(`  🔍 Searching for card links in HTML...`);
+
+  // DEBUG: Check if HTML contains any card-related elements
+  const hasCardGrid = html.includes('card-grid');
+  const hasCardsInHref = html.includes('/cards/');
+  console.log(`  DEBUG: HTML contains "card-grid": ${hasCardGrid}`);
+  console.log(`  DEBUG: HTML contains "/cards/": ${hasCardsInHref}`);
+
+  // DEBUG: Show a sample of hrefs in the HTML
+  const allHrefsRegex = /href="([^"]+)"/g;
+  const sampleHrefs = [];
+  let sampleMatch;
+  let count = 0;
+  while ((sampleMatch = allHrefsRegex.exec(html)) !== null && count < 5) {
+    sampleHrefs.push(sampleMatch[1]);
+    count++;
+  }
+  console.log(`  DEBUG: Sample hrefs found:`, sampleHrefs);
 
   // Extract all card links matching /cards/ pattern
   const linkRegex = /href="(\/cards\/[^"]+)"/g;
@@ -64,8 +94,12 @@ async function fetchCardLinks(page, url) {
     links.push(fullUrl);
   }
 
+  console.log(`  📊 Regex matched ${links.length} card links`);
+
   // Return unique links
-  return [...new Set(links)];
+  const uniqueLinks = [...new Set(links)];
+  console.log(`  ✓ Returning ${uniqueLinks.length} unique card links`);
+  return uniqueLinks;
 }
 
 /**
