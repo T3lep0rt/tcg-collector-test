@@ -11,7 +11,14 @@ const Card = ({ card, onClick }) => {
   const isCrownCard = (rarity) => {
     if (!rarity) return false;
     const rarityNum = parseInt(rarity);
-    return !isNaN(rarityNum) && rarityNum >= 7;
+    const isCrown = !isNaN(rarityNum) && rarityNum >= 7;
+
+    // Debug logging to see what rarity values we're getting
+    if (rarityNum >= 0) {
+      console.log(`Card: ${card.name}, Rarity: "${rarity}", Parsed: ${rarityNum}, IsCrown: ${isCrown}`);
+    }
+
+    return isCrown;
   };
 
   const getRarityColor = (rarity) => {
