@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Card from './Card';
 
-const Browse = ({ cards, loading, onAddToCollection }) => {
+const Browse = ({ cards, loading, onAddToCollection, currentUserId }) => {
   const [filterSet, setFilterSet] = useState('all');
   const [filterRarity, setFilterRarity] = useState('all');
   const [sortBy, setSortBy] = useState('name');
@@ -103,25 +103,44 @@ const Browse = ({ cards, loading, onAddToCollection }) => {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-            {filteredCards.map((card) => (
-              <div key={card.id} className="relative group">
-                <Card card={card} onClick={() => {}} />
-                <button
-                  onClick={() => onAddToCollection(card)}
-                  className="absolute bottom-4 left-1/2 transform -translate-x-1/2
-                           bg-gradient-to-r from-green-500 to-emerald-600
-                           text-white px-4 py-2 rounded-full font-semibold text-sm
-                           opacity-0 group-hover:opacity-100 transition-all duration-300
-                           hover:scale-110 shadow-lg hover:shadow-green-500/50
-                           flex items-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add
-                </button>
-              </div>
-            ))}
+            {filteredCards.map((card) => {
+              const isOwned = card.userId === currentUserId;
+
+              return (
+                <div key={card.id} className="relative group">
+                  <Card card={card} onClick={() => {}} />
+
+                  {/* Owned Badge */}
+                  {isOwned && (
+                    <div className="absolute top-2 right-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
+                      Owned {card.quantity > 1 ? `(${card.quantity})` : ''}
+                    </div>
+                  )}
+
+                  {/* Add/Update Button */}
+                  <button
+                    onClick={() => onAddToCollection(card)}
+                    className={`absolute bottom-4 left-1/2 transform -translate-x-1/2
+                             ${isOwned
+                               ? 'bg-gradient-to-r from-blue-500 to-cyan-600'
+                               : 'bg-gradient-to-r from-green-500 to-emerald-600'}
+                             text-white px-4 py-2 rounded-full font-semibold text-sm
+                             opacity-0 group-hover:opacity-100 transition-all duration-300
+                             hover:scale-110 shadow-lg ${isOwned ? 'hover:shadow-blue-500/50' : 'hover:shadow-green-500/50'}
+                             flex items-center gap-2`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {isOwned ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      )}
+                    </svg>
+                    {isOwned ? 'Update' : 'Add'}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
