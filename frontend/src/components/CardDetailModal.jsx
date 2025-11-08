@@ -23,6 +23,17 @@ const CardDetailModal = ({ card, onClose, onUpdate, onDelete, isOwned, currentUs
     };
   }, []);
 
+  // Update editedCard when card prop changes (for live updates)
+  useEffect(() => {
+    if (card) {
+      setEditedCard({
+        condition: card.condition || 'Near Mint',
+        quantity: card.quantity || 1,
+        notes: card.notes || ''
+      });
+    }
+  }, [card]);
+
   // Process image URL (same logic as Card component)
   const getProcessedImageUrl = (url) => {
     if (!url) return null;
@@ -54,6 +65,19 @@ const CardDetailModal = ({ card, onClose, onUpdate, onDelete, isOwned, currentUs
         onDelete(card);
       }
       onClose();
+    }
+  };
+
+  const handleQuickQuantityChange = (increment) => {
+    const currentQuantity = card.quantity || 1;
+    const newQuantity = Math.max(1, currentQuantity + increment);
+
+    if (onUpdate) {
+      onUpdate(card, {
+        condition: card.condition || 'Near Mint',
+        quantity: newQuantity,
+        notes: card.notes || ''
+      });
     }
   };
 
@@ -421,7 +445,40 @@ const CardDetailModal = ({ card, onClose, onUpdate, onDelete, isOwned, currentUs
                           </div>
                           <div>
                             <p className="text-gray-400 text-xs mb-1">Quantity</p>
-                            <p className="text-white font-medium">{card.quantity || 1}</p>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleQuickQuantityChange(-1);
+                                }}
+                                disabled={(card.quantity || 1) <= 1}
+                                className={`p-1 rounded-lg transition-all ${
+                                  (card.quantity || 1) <= 1
+                                    ? 'bg-slate-700/30 text-gray-500 cursor-not-allowed'
+                                    : 'bg-red-500/80 hover:bg-red-600 text-white hover:scale-110'
+                                }`}
+                                title="Decrease quantity"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                                </svg>
+                              </button>
+                              <span className="text-white font-bold text-lg min-w-[2rem] text-center">
+                                {card.quantity || 1}
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleQuickQuantityChange(1);
+                                }}
+                                className="p-1 bg-green-500/80 hover:bg-green-600 text-white rounded-lg transition-all hover:scale-110"
+                                title="Increase quantity"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
                         </div>
                         {card.notes && (
