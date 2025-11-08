@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Browse from '../components/Browse';
 import CollectionView from '../components/Collection';
+import CardDetailModal from '../components/CardDetailModal';
 import api from '../services/api';
 
 export default function Collection() {
@@ -81,6 +82,25 @@ export default function Collection() {
 
   const closeModal = () => {
     setSelectedCard(null);
+  };
+
+  const handleUpdateCard = async (card, updates) => {
+    try {
+      // Update card in user's inventory using the card's Pokemon TCG API ID
+      await api.updateInventory(card.cardId, {
+        quantity: updates.quantity,
+        condition: updates.condition,
+        notes: updates.notes
+      });
+      // Refresh cards
+      fetchCards();
+    } catch (err) {
+      console.error('Error updating card:', err);
+      // For demo mode, update locally
+      setAllCards(prev => prev.map(c =>
+        c.id === card.id ? { ...c, ...updates } : c
+      ));
+    }
   };
 
   const handleLogout = async () => {
@@ -178,99 +198,21 @@ export default function Collection() {
           cards={browseCards}
           loading={loading}
           onAddToCollection={handleAddToCollection}
+          onCardClick={handleCardClick}
           currentUserId={user?.id}
         />
       )}
 
       {/* Card Detail Modal */}
       {selectedCard && (
-        <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn"
-          onClick={closeModal}
-        >
-          <div
-            className="bg-gradient-to-br from-slate-800 to-purple-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-purple-500/30"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6">
-              {/* Header */}
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h2 className="text-3xl font-bold text-white mb-2">
-                    {selectedCard.name}
-                  </h2>
-                  <p className="text-purple-300">{selectedCard.set}</p>
-                </div>
-                <button
-                  onClick={closeModal}
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  <svg
-                    className="w-8 h-8"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Card Image */}
-              <div className="mb-6 rounded-xl overflow-hidden bg-gradient-to-br from-slate-700 to-slate-900">
-                {selectedCard.imageUrl ? (
-                  <img
-                    src={selectedCard.imageUrl}
-                    alt={selectedCard.name}
-                    className="w-full h-auto"
-                  />
-                ) : (
-                  <div className="aspect-[2.5/3.5] flex items-center justify-center">
-                    <p className="text-gray-400">No image available</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Card Details */}
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  {selectedCard.rarity && (
-                    <div className="bg-slate-700/50 rounded-lg p-4">
-                      <p className="text-gray-400 text-sm mb-1">Rarity</p>
-                      <p className="text-white font-semibold">{selectedCard.rarity}</p>
-                    </div>
-                  )}
-                  {selectedCard.condition && (
-                    <div className="bg-slate-700/50 rounded-lg p-4">
-                      <p className="text-gray-400 text-sm mb-1">Condition</p>
-                      <p className="text-white font-semibold">{selectedCard.condition}</p>
-                    </div>
-                  )}
-                  <div className="bg-slate-700/50 rounded-lg p-4">
-                    <p className="text-gray-400 text-sm mb-1">Quantity</p>
-                    <p className="text-white font-semibold">{selectedCard.quantity || 1}</p>
-                  </div>
-                  <div className="bg-slate-700/50 rounded-lg p-4">
-                    <p className="text-gray-400 text-sm mb-1">Set</p>
-                    <p className="text-white font-semibold">{selectedCard.set}</p>
-                  </div>
-                </div>
-
-                {selectedCard.notes && (
-                  <div className="bg-slate-700/50 rounded-lg p-4">
-                    <p className="text-gray-400 text-sm mb-1">Notes</p>
-                    <p className="text-white">{selectedCard.notes}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <CardDetailModal
+          card={selectedCard}
+          onClose={closeModal}
+          onUpdate={handleUpdateCard}
+          onDelete={handleRemoveFromCollection}
+          isOwned={selectedCard.userId === user?.id}
+          currentUserId={user?.id}
+        />
       )}
     </div>
   );

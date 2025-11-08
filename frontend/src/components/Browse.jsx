@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Card from './Card';
 
-const Browse = ({ cards, loading, onAddToCollection, currentUserId }) => {
+const Browse = ({ cards, loading, onAddToCollection, onCardClick, currentUserId }) => {
   const [filterSet, setFilterSet] = useState('all');
   const [filterRarity, setFilterRarity] = useState('all');
   const [sortBy, setSortBy] = useState('name');
@@ -174,7 +174,7 @@ const Browse = ({ cards, loading, onAddToCollection, currentUserId }) => {
 
               return (
                 <div key={card.id} className="relative group">
-                  <Card card={card} onClick={() => {}} />
+                  <Card card={card} onClick={onCardClick} />
 
                   {/* Owned Badge */}
                   {isOwned && (
