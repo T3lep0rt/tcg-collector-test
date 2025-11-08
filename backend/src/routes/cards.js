@@ -20,7 +20,7 @@ router.use(requireAuth);
 router.get('/browse', async (req, res) => {
   try {
     const userId = req.session.userId;
-    const { page = 1, limit = 1000, set, rarity, search } = req.query;
+    const { page = 1, limit = 10000, set, rarity, search } = req.query;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
