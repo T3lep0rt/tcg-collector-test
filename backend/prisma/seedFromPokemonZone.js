@@ -167,6 +167,29 @@ function extractRarity(html) {
 }
 
 /**
+ * Maps numeric rarity value to proper rarity name
+ * @param {number} rarityNum - Numeric rarity value from extractRarity
+ * @returns {string} Human-readable rarity name
+ */
+function mapRarityToName(rarityNum) {
+  const rarityMap = {
+    0: 'Unknown',
+    1: 'Common',           // 1 Diamond
+    2: 'Uncommon',         // 2 Diamonds
+    3: 'Rare',             // 3 Diamonds
+    4: 'Double Rare',      // 4 Diamonds
+    5: 'Ultra Rare',       // 1 Star
+    6: 'Super Rare',       // 2 Stars
+    7: 'Hyper Rare',       // 3 Stars
+    8: 'Crown Rare',       // 1 Crown
+    9: 'Special Illustration Rare', // 2 Crowns
+    10: 'Immersive Rare'   // 3 Crowns
+  };
+
+  return rarityMap[rarityNum] || 'Unknown';
+}
+
+/**
  * Generates cards for a specific expansion
  * @param {string} url - The expansion page URL
  * @param {string} expansionName - Name of the expansion (e.g., "Genetic Apex")
@@ -249,19 +272,21 @@ async function generateCardsForExpansion(url, expansionName, setSlug) {
         imageUrl = `https://www.pokemon-zone.com${imageUrl}`;
       }
 
+      const rarityName = mapRarityToName(rarity);
+
       const cardData = {
         name: pokemonName,
         number: number,
         booster: booster,
         imageUrl: imageUrl,
-        rarity: rarity,
+        rarity: rarityName,
         expansion: expansionName,
         setSlug: setSlug
       };
 
       console.log(`  Name: ${pokemonName}`);
       console.log(`  Number: ${number}`);
-      console.log(`  Rarity: ${rarity}`);
+      console.log(`  Rarity: ${rarityName}`);
       console.log(`  Booster: ${booster || 'N/A'}`);
 
       // Check if card already exists (using set slug for more precise matching)
@@ -282,7 +307,7 @@ async function generateCardsForExpansion(url, expansionName, setSlug) {
             set: setSlug,  // Use slug for filtering
             setName: cardData.expansion,  // Use full name for display
             number: cardData.number,
-            rarity: cardData.rarity.toString(),
+            rarity: cardData.rarity,
             imageUrl: cardData.imageUrl,
             notes: cardData.booster ? `Booster: ${cardData.booster}` : null,
             condition: 'Near Mint',
