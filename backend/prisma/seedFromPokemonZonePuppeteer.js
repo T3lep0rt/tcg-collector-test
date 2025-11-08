@@ -1,5 +1,9 @@
 import { PrismaClient } from '@prisma/client';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+
+// Use stealth plugin to evade detection
+puppeteer.use(StealthPlugin());
 
 const prisma = new PrismaClient();
 
@@ -351,20 +355,15 @@ async function generateCardsForExpansion(page, url, expansionName, setSlug) {
 async function main() {
   console.log('===== Starting Pokemon Zone Card Seeder (Puppeteer) =====\n');
 
-  // Launch browser with enhanced anti-detection
-  console.log('Launching browser with anti-detection measures...');
+  // Launch browser with stealth plugin (handles most anti-detection automatically)
+  console.log('Launching browser with stealth plugin...');
   const browser = await puppeteer.launch({
     headless: 'new',
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
-      '--disable-blink-features=AutomationControlled',
-      '--disable-features=IsolateOrigins,site-per-process',
-      '--disable-web-security',
-      '--disable-features=VizDisplayCompositor',
-      '--window-size=1920,1080',
-      '--start-maximized'
+      '--window-size=1920,1080'
     ]
   });
 
@@ -377,52 +376,11 @@ async function main() {
     deviceScaleFactor: 1
   });
 
-  // Set realistic user agent
-  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36');
-
-  // Set extra headers to appear more like a real browser
+  // Stealth plugin handles user agent and most headers automatically
+  // Just add a few extra headers for realism
   await page.setExtraHTTPHeaders({
     'Accept-Language': 'en-US,en;q=0.9',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Connection': 'keep-alive',
-    'Upgrade-Insecure-Requests': '1',
-    'Sec-Fetch-Dest': 'document',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'none',
-    'Sec-Fetch-User': '?1',
-    'Cache-Control': 'max-age=0'
-  });
-
-  // Override webdriver and automation flags
-  await page.evaluateOnNewDocument(() => {
-    // Overwrite the navigator.webdriver property
-    Object.defineProperty(navigator, 'webdriver', {
-      get: () => false
-    });
-
-    // Mock plugins
-    Object.defineProperty(navigator, 'plugins', {
-      get: () => [1, 2, 3, 4, 5]
-    });
-
-    // Mock languages
-    Object.defineProperty(navigator, 'languages', {
-      get: () => ['en-US', 'en']
-    });
-
-    // Remove automation indicators
-    window.chrome = {
-      runtime: {}
-    };
-
-    // Mock permissions
-    const originalQuery = window.navigator.permissions.query;
-    window.navigator.permissions.query = (parameters) => (
-      parameters.name === 'notifications' ?
-        Promise.resolve({ state: Notification.permission }) :
-        originalQuery(parameters)
-    );
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
   });
 
   try {
