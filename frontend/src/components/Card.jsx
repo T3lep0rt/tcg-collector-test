@@ -36,13 +36,33 @@ const Card = ({ card, onClick }) => {
     }
   };
 
-  // Check if imageUrl is a valid full URL
-  const isValidImageUrl = (url) => {
-    if (!url) return false;
-    return url.startsWith('http://') || url.startsWith('https://');
+  // Process and validate image URL
+  const getProcessedImageUrl = (url) => {
+    if (!url) return null;
+
+    // If it's not a valid URL at all (just a number or relative path), return null
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return null;
+    }
+
+    // If it's a TCGdex asset URL without quality/extension, add them
+    // TCGdex URLs look like: https://assets.tcgdex.net/en/tcgp/A1a/069
+    // They need to become: https://assets.tcgdex.net/en/tcgp/A1a/069/low.webp
+    if (url.includes('assets.tcgdex.net')) {
+      // Check if it already has quality/extension
+      if (url.match(/\/(low|high)\.(png|jpg|webp)$/)) {
+        return url;
+      }
+      // Add low quality webp for browse view (recommended by TCGdex)
+      return `${url}/low.webp`;
+    }
+
+    // For other valid URLs, return as-is
+    return url;
   };
 
-  const hasValidImage = isValidImageUrl(card.imageUrl);
+  const processedImageUrl = getProcessedImageUrl(card.imageUrl);
+  const hasValidImage = processedImageUrl !== null;
 
   return (
     <div
@@ -69,7 +89,7 @@ const Card = ({ card, onClick }) => {
             <div className="relative w-full h-full bg-gradient-to-br from-slate-700 to-slate-900">
               {hasValidImage ? (
                 <img
-                  src={card.imageUrl}
+                  src={processedImageUrl}
                   alt={card.name}
                   className="w-full h-full object-cover"
                   onError={(e) => {
