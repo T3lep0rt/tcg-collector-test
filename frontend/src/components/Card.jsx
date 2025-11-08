@@ -156,9 +156,20 @@ const Card = ({ card, onClick }) => {
           <div className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl transition-all duration-300 transform group-hover:scale-105 group-hover:shadow-3xl">
             {/* Holographic effect overlay - golden for crown cards */}
             {isCrownCard(card.rarity) ? (
-              <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/30 via-amber-400/30 to-yellow-600/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none animate-golden-shimmer" />
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/15 via-amber-400/15 to-yellow-600/15 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none animate-golden-shimmer" />
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none animate-shimmer" />
+            )}
+
+            {/* Sparkles for crown cards */}
+            {isCrownCard(card.rarity) && (
+              <>
+                <div className="absolute top-[15%] left-[20%] w-2 h-2 bg-yellow-300 rounded-full opacity-0 group-hover:opacity-70 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 1.5s ease-in-out infinite' }} />
+                <div className="absolute top-[25%] right-[15%] w-1.5 h-1.5 bg-amber-200 rounded-full opacity-0 group-hover:opacity-60 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 2s ease-in-out infinite 0.3s' }} />
+                <div className="absolute bottom-[30%] left-[15%] w-1 h-1 bg-yellow-400 rounded-full opacity-0 group-hover:opacity-80 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 1.8s ease-in-out infinite 0.6s' }} />
+                <div className="absolute bottom-[20%] right-[25%] w-1.5 h-1.5 bg-yellow-300 rounded-full opacity-0 group-hover:opacity-70 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 2.2s ease-in-out infinite 0.9s' }} />
+                <div className="absolute top-[45%] right-[10%] w-1 h-1 bg-amber-300 rounded-full opacity-0 group-hover:opacity-60 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 1.7s ease-in-out infinite 1.2s' }} />
+              </>
             )}
 
             {/* Dynamic glare effect that follows mouse - golden for crown cards */}
@@ -166,7 +177,7 @@ const Card = ({ card, onClick }) => {
               className="absolute inset-0 z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
               style={{
                 background: isCrownCard(card.rarity)
-                  ? `radial-gradient(circle at ${glarePosition.x}% ${glarePosition.y}%, rgba(255, 215, 0, 0.9) 0%, rgba(255, 223, 0, 0.5) 20%, transparent 50%)`
+                  ? `radial-gradient(circle at ${glarePosition.x}% ${glarePosition.y}%, rgba(255, 215, 0, 0.5) 0%, rgba(255, 223, 0, 0.25) 20%, transparent 50%)`
                   : `radial-gradient(circle at ${glarePosition.x}% ${glarePosition.y}%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.3) 20%, transparent 50%)`,
                 mixBlendMode: 'overlay',
               }}
@@ -239,7 +250,7 @@ const Card = ({ card, onClick }) => {
             <div
               className={`absolute inset-0 rounded-xl border-2 border-transparent transition-colors duration-300 pointer-events-none ${
                 isCrownCard(card.rarity)
-                  ? 'group-hover:border-yellow-400/50 group-hover:shadow-[0_0_20px_rgba(255,215,0,0.5)]'
+                  ? 'group-hover:border-yellow-400/30 group-hover:shadow-[0_0_15px_rgba(255,215,0,0.3)]'
                   : 'group-hover:border-white/30'
               }`}
             />
