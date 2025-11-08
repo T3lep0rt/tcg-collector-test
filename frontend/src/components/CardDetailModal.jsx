@@ -15,6 +15,12 @@ const CardDetailModal = ({ card, onClose, onUpdate, onDelete, isOwned, currentUs
   const [glarePosition, setGlarePosition] = useState({ x: 50, y: 50 });
   const [isHovering, setIsHovering] = useState(false);
 
+  // Trade offer states
+  const [showTradeModal, setShowTradeModal] = useState(false);
+  const [requestedRarity, setRequestedRarity] = useState('');
+  const [tradeMessage, setTradeMessage] = useState('');
+  const [targetUserId, setTargetUserId] = useState('');
+
   // Prevent scroll when modal is open
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -127,6 +133,44 @@ const CardDetailModal = ({ card, onClose, onUpdate, onDelete, isOwned, currentUs
     return !isNaN(rarityNum) && rarityNum >= 7;
   };
 
+  // Handle creating trade offer
+  const handleCreateTradeOffer = async () => {
+    if (!requestedRarity) {
+      alert('Please select the rarity you want in exchange');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:3000/api/trades', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          offeredCardId: card.cardId,
+          requestedRarity,
+          targetUserId: targetUserId || null,
+          message: tradeMessage || null
+        })
+      });
+
+      if (response.ok) {
+        alert('Trade offer created successfully!');
+        setShowTradeModal(false);
+        setRequestedRarity('');
+        setTradeMessage('');
+        setTargetUserId('');
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to create trade offer');
+      }
+    } catch (error) {
+      console.error('Error creating trade offer:', error);
+      alert('Failed to create trade offer');
+    }
+  };
+
   if (!card) return null;
 
   const conditionOptions = ['Mint', 'Near Mint', 'Lightly Played', 'Moderately Played', 'Heavily Played', 'Damaged'];
@@ -166,6 +210,15 @@ const CardDetailModal = ({ card, onClose, onUpdate, onDelete, isOwned, currentUs
             <div className="flex items-center gap-2">
               {isOwned && !isEditing && (
                 <>
+                  <button
+                    onClick={() => setShowTradeModal(true)}
+                    className="p-2 sm:p-3 bg-green-500/80 hover:bg-green-600 text-white rounded-lg transition-all hover:scale-110"
+                    title="Create trade offer"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                  </button>
                   <button
                     onClick={() => setIsEditing(true)}
                     className="p-2 sm:p-3 bg-blue-500/80 hover:bg-blue-600 text-white rounded-lg transition-all hover:scale-110"
@@ -535,6 +588,101 @@ const CardDetailModal = ({ card, onClose, onUpdate, onDelete, isOwned, currentUs
           </p>
         </div>
       </div>
+
+      {/* Trade Offer Modal */}
+      {showTradeModal && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+          <div className="bg-gradient-to-br from-slate-800 to-purple-900 rounded-2xl w-full max-w-md p-6 border border-purple-500/30">
+            <div className="flex justify-between items-start mb-6">
+              <h2 className="text-2xl font-bold text-white">
+                Create Trade Offer
+              </h2>
+              <button
+                onClick={() => setShowTradeModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <h3 className="text-purple-300 font-semibold mb-2">You are offering:</h3>
+              <div className="flex items-center gap-3 bg-slate-700/30 p-3 rounded-lg">
+                <img
+                  src={processedImageUrl}
+                  alt={card.name}
+                  className="w-16 h-auto rounded"
+                />
+                <div>
+                  <p className="text-white font-bold">{card.name}</p>
+                  <p className="text-gray-400 text-sm">{card.set}</p>
+                  <p className="text-gray-400 text-sm">Rarity: {card.rarity}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-purple-300 font-semibold mb-2">
+                Requested Rarity: *
+              </label>
+              <select
+                value={requestedRarity}
+                onChange={(e) => setRequestedRarity(e.target.value)}
+                className="w-full bg-slate-800 text-white border border-purple-500/30 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="">Select rarity...</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+              </select>
+              <p className="text-gray-400 text-xs mt-1">
+                Other users with this rarity can respond to your trade
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-purple-300 font-semibold mb-2">
+                Message (optional):
+              </label>
+              <textarea
+                value={tradeMessage}
+                onChange={(e) => setTradeMessage(e.target.value)}
+                placeholder="Add a message to your trade offer..."
+                className="w-full bg-slate-800 text-white border border-purple-500/30 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                rows="3"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleCreateTradeOffer}
+                className="flex-1 bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+              >
+                Create Offer
+              </button>
+              <button
+                onClick={() => {
+                  setShowTradeModal(false);
+                  setRequestedRarity('');
+                  setTradeMessage('');
+                }}
+                className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Print Styles */}
       <style jsx>{`
