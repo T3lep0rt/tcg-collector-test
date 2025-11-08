@@ -7,11 +7,28 @@ const Card = ({ card, onClick }) => {
   const [glarePosition, setGlarePosition] = useState({ x: 50, y: 50 });
   const [isHovering, setIsHovering] = useState(false);
 
-  // Check if card is a crown card (rarity value >= 7)
+  // Check if card is a crown card
+  // Supports both numeric values (>= 7) and text-based rarity strings
   const isCrownCard = (rarity) => {
     if (!rarity) return false;
+
+    const rarityStr = rarity.toString().toLowerCase();
+
+    // Check for text-based crown indicators (TCGdex format)
+    if (rarityStr.includes('crown') ||
+        rarityStr.includes('ultra rare') ||
+        rarityStr.includes('special illustration rare') ||
+        rarityStr.includes('hyper rare')) {
+      return true;
+    }
+
+    // Check for numeric format (Pokemon Zone seed format)
     const rarityNum = parseInt(rarity);
-    return !isNaN(rarityNum) && rarityNum >= 7;
+    if (!isNaN(rarityNum) && rarityNum >= 7) {
+      return true;
+    }
+
+    return false;
   };
 
   const getRarityColor = (rarity) => {
