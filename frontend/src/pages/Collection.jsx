@@ -38,7 +38,7 @@ export default function Collection() {
   };
 
   // Split cards into browse (available) and collection (owned by current user)
-  const browseCards = allCards.filter(card => !card.userId);
+  const browseCards = allCards.filter(card => card.userId !== user?.id);
   const collectionCards = allCards.filter(card => card.userId === user?.id);
 
   const handleAddToCollection = async (card) => {
