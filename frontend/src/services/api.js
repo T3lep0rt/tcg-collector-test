@@ -84,6 +84,11 @@ class ApiService {
     return this.request(`/cards?${queryString}`);
   }
 
+  async getBrowseCards(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/cards/browse?${queryString}`);
+  }
+
   async getCard(cardId) {
     return this.request(`/cards/${cardId}`);
   }
@@ -110,6 +115,34 @@ class ApiService {
 
   async getCollectionStats() {
     return this.request('/cards/stats/summary');
+  }
+
+  // Inventory endpoints
+  async addToInventory(cardId, inventoryData = {}) {
+    return this.request('/inventory', {
+      method: 'POST',
+      body: JSON.stringify({
+        cardId,
+        ...inventoryData
+      }),
+    });
+  }
+
+  async updateInventory(cardId, inventoryData) {
+    return this.request(`/inventory/${cardId}`, {
+      method: 'PUT',
+      body: JSON.stringify(inventoryData),
+    });
+  }
+
+  async removeFromInventory(cardId) {
+    return this.request(`/inventory/${cardId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getInventoryCard(cardId) {
+    return this.request(`/inventory/${cardId}`);
   }
 }
 

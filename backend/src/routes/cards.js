@@ -13,8 +13,82 @@ const router = express.Router();
 router.use(requireAuth);
 
 /**
+ * GET /api/cards/browse
+ * Get all cards in the catalog (for browse view)
+ * Includes user's inventory status for each card
+ */
+router.get('/browse', async (req, res) => {
+  try {
+    const userId = req.session.userId;
+    const { page = 1, limit = 1000, set, rarity, search } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build filter for card catalog
+    const where = {};
+
+    if (set) where.set = set;
+    if (rarity) where.rarity = rarity;
+    if (search) {
+      where.name = {
+        contains: search,
+        mode: 'insensitive'
+      };
+    }
+
+    // Get all cards with pagination
+    const [cards, total] = await Promise.all([
+      prisma.card.findMany({
+        where,
+        skip,
+        take: parseInt(limit),
+        orderBy: { name: 'asc' },
+        include: {
+          userCards: {
+            where: { userId },
+            select: {
+              quantity: true,
+              condition: true,
+              notes: true
+            }
+          }
+        }
+      }),
+      prisma.card.count({ where })
+    ]);
+
+    // Transform cards to include ownership info at top level for frontend compatibility
+    const cardsWithOwnership = cards.map(card => {
+      const userCard = card.userCards[0]; // Will be undefined if user doesn't own it
+      return {
+        ...card,
+        userId: userCard ? userId : null,
+        quantity: userCard?.quantity || 0,
+        condition: userCard?.condition || null,
+        notes: userCard?.notes || null,
+        userCards: undefined // Remove nested data
+      };
+    });
+
+    res.json({
+      cards: cardsWithOwnership,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error('Get browse cards error:', error);
+    res.status(500).json({ error: 'Failed to get cards' });
+  }
+});
+
+/**
  * GET /api/cards
  * Get current user's card collection
+ * Now returns data from UserCard inventory table
  */
 router.get('/', async (req, res) => {
   try {
@@ -23,31 +97,56 @@ router.get('/', async (req, res) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Build filter
+    // Build filter for user's inventory
     const where = {
       userId
     };
 
-    if (set) where.set = set;
-    if (rarity) where.rarity = rarity;
-    if (condition) where.condition = condition;
+    // Build card filter
+    const cardWhere = {};
+    if (set) cardWhere.set = set;
+    if (rarity) cardWhere.rarity = rarity;
     if (search) {
-      where.name = {
+      cardWhere.name = {
         contains: search,
         mode: 'insensitive'
       };
     }
 
-    // Get cards with pagination
-    const [cards, total] = await Promise.all([
-      prisma.card.findMany({
-        where,
+    // Add condition filter to userCard
+    if (condition) where.condition = condition;
+
+    // Get user's cards from inventory with card details
+    const [userCards, total] = await Promise.all([
+      prisma.userCard.findMany({
+        where: {
+          ...where,
+          card: cardWhere
+        },
         skip,
         take: parseInt(limit),
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        include: {
+          card: true
+        }
       }),
-      prisma.card.count({ where })
+      prisma.userCard.count({
+        where: {
+          ...where,
+          card: cardWhere
+        }
+      })
     ]);
+
+    // Transform to match old API format for backwards compatibility
+    const cards = userCards.map(userCard => ({
+      ...userCard.card,
+      quantity: userCard.quantity,
+      condition: userCard.condition,
+      notes: userCard.notes,
+      userId: userCard.userId,
+      userCardId: userCard.id
+    }));
 
     res.json({
       cards,
@@ -73,25 +172,50 @@ router.get('/stats/summary', async (req, res) => {
   try {
     const userId = req.session.userId;
 
-    const [totalCards, uniqueCards, sets, rarities] = await Promise.all([
-      prisma.card.aggregate({
+    // Get stats from UserCard inventory
+    const [totalCards, uniqueCards, userCards] = await Promise.all([
+      prisma.userCard.aggregate({
         where: { userId },
         _sum: { quantity: true }
       }),
-      prisma.card.count({
+      prisma.userCard.count({
         where: { userId }
       }),
-      prisma.card.groupBy({
-        by: ['set'],
+      prisma.userCard.findMany({
         where: { userId },
-        _count: true
-      }),
-      prisma.card.groupBy({
-        by: ['rarity'],
-        where: { userId },
-        _count: true
+        include: {
+          card: {
+            select: {
+              set: true,
+              rarity: true
+            }
+          }
+        }
       })
     ]);
+
+    // Group by set and rarity
+    const setMap = new Map();
+    const rarityMap = new Map();
+
+    userCards.forEach(userCard => {
+      const { set, rarity } = userCard.card;
+
+      setMap.set(set, (setMap.get(set) || 0) + 1);
+      if (rarity) {
+        rarityMap.set(rarity, (rarityMap.get(rarity) || 0) + 1);
+      }
+    });
+
+    const sets = Array.from(setMap.entries()).map(([set, _count]) => ({
+      set,
+      _count
+    }));
+
+    const rarities = Array.from(rarityMap.entries()).map(([rarity, _count]) => ({
+      rarity,
+      _count
+    }));
 
     res.json({
       totalCards: totalCards._sum.quantity || 0,
