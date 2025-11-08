@@ -9,6 +9,12 @@ const CardDetailModal = ({ card, onClose, onUpdate, onDelete, isOwned, currentUs
     notes: card?.notes || ''
   });
 
+  // 3D hover effect states
+  const [rotateX, setRotateX] = useState(0);
+  const [rotateY, setRotateY] = useState(0);
+  const [glarePosition, setGlarePosition] = useState({ x: 50, y: 50 });
+  const [isHovering, setIsHovering] = useState(false);
+
   // Prevent scroll when modal is open
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -59,6 +65,42 @@ const CardDetailModal = ({ card, onClose, onUpdate, onDelete, isOwned, currentUs
     if (e.target === e.currentTarget) {
       onClose();
     }
+  };
+
+  // 3D hover effect handlers
+  const handleMouseMove = (e) => {
+    const cardElement = e.currentTarget;
+    const rect = cardElement.getBoundingClientRect();
+
+    // Calculate mouse position relative to card center (0-100%)
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    // Calculate rotation angles (max ±15 degrees)
+    const rotateYValue = ((x - 50) / 50) * 15;
+    const rotateXValue = ((y - 50) / 50) * -15;
+
+    setRotateX(rotateXValue);
+    setRotateY(rotateYValue);
+    setGlarePosition({ x, y });
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovering(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+    setRotateX(0);
+    setRotateY(0);
+    setGlarePosition({ x: 50, y: 50 });
+  };
+
+  // Check if card is a crown card (rarity value >= 7)
+  const isCrownCard = (rarity) => {
+    if (!rarity) return false;
+    const rarityNum = parseInt(rarity);
+    return !isNaN(rarityNum) && rarityNum >= 7;
   };
 
   if (!card) return null;
@@ -145,59 +187,112 @@ const CardDetailModal = ({ card, onClose, onUpdate, onDelete, isOwned, currentUs
         {/* Content */}
         <div className="overflow-y-auto max-h-[calc(95vh-100px)]">
           <div className="p-4 sm:p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column - Card Image */}
-              <div className="space-y-4">
-                {/* Card Image with Zoom */}
+            {/* Card Image - Centered at Top with 3D Hover */}
+            <div className="flex justify-center mb-8">
+              <div
+                className="w-full max-w-md"
+                style={{ perspective: '1000px' }}
+              >
                 <div
-                  className={`relative rounded-xl overflow-hidden bg-gradient-to-br from-slate-700 to-slate-900 cursor-zoom-in ${
-                    isZoomed ? 'cursor-zoom-out' : ''
+                  className={`relative w-full aspect-[2.5/3.5] cursor-pointer ${
+                    isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'
                   }`}
+                  onMouseMove={handleMouseMove}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
                   onClick={() => setIsZoomed(!isZoomed)}
+                  style={{
+                    transform: `rotateX(${rotateX}deg) rotateY(${rotateY}deg) ${isZoomed ? 'scale(1.5)' : 'scale(1)'}`,
+                    transition: isHovering && !isZoomed ? 'transform 0.1s ease-out' : 'transform 0.5s ease-out',
+                    transformStyle: 'preserve-3d',
+                  }}
                 >
-                  {processedImageUrl ? (
-                    <img
-                      src={processedImageUrl}
-                      alt={card.name}
-                      className={`w-full h-auto transition-transform duration-300 ${
-                        isZoomed ? 'scale-150' : 'scale-100'
+                  <div className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl bg-gradient-to-br from-slate-700 to-slate-900">
+                    {/* Holographic effect overlay - golden for crown cards */}
+                    {isCrownCard(card.rarity) ? (
+                      <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/30 via-amber-400/30 to-yellow-600/30 opacity-0 hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none animate-golden-shimmer" />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-blue-500/20 opacity-0 hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none animate-shimmer" />
+                    )}
+
+                    {/* Dynamic glare effect that follows mouse - golden for crown cards */}
+                    <div
+                      className="absolute inset-0 z-20 pointer-events-none opacity-0 hover:opacity-100 transition-opacity duration-300"
+                      style={{
+                        background: isCrownCard(card.rarity)
+                          ? `radial-gradient(circle at ${glarePosition.x}% ${glarePosition.y}%, rgba(255, 215, 0, 0.9) 0%, rgba(255, 223, 0, 0.5) 20%, transparent 50%)`
+                          : `radial-gradient(circle at ${glarePosition.x}% ${glarePosition.y}%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.3) 20%, transparent 50%)`,
+                        mixBlendMode: 'overlay',
+                      }}
+                    />
+
+                    {/* Card Image */}
+                    {processedImageUrl ? (
+                      <img
+                        src={processedImageUrl}
+                        alt={card.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <div className="text-center">
+                          <svg className="w-24 h-24 mx-auto text-gray-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <p className="text-gray-400">No image available</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Zoom hint */}
+                    {processedImageUrl && (
+                      <div className="absolute bottom-2 right-2 bg-black/60 text-white px-2 py-1 rounded text-xs z-30">
+                        Click to {isZoomed ? 'zoom out' : 'zoom in'}
+                      </div>
+                    )}
+
+                    {/* Border glow effect - golden for crown cards */}
+                    <div
+                      className={`absolute inset-0 rounded-xl border-2 border-transparent transition-colors duration-300 pointer-events-none ${
+                        isCrownCard(card.rarity)
+                          ? 'hover:border-yellow-400/50 hover:shadow-[0_0_20px_rgba(255,215,0,0.5)]'
+                          : 'hover:border-white/30'
                       }`}
                     />
-                  ) : (
-                    <div className="aspect-[2.5/3.5] flex items-center justify-center">
-                      <div className="text-center">
-                        <svg className="w-24 h-24 mx-auto text-gray-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <p className="text-gray-400">No image available</p>
-                      </div>
-                    </div>
-                  )}
-                  {processedImageUrl && (
-                    <div className="absolute bottom-2 right-2 bg-black/60 text-white px-2 py-1 rounded text-xs">
-                      Click to {isZoomed ? 'zoom out' : 'zoom in'}
-                    </div>
-                  )}
-                </div>
-
-                {/* Quick Stats - Mobile Friendly */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-lg p-4">
-                    <div className="text-purple-300 text-xs font-medium mb-1">Rarity</div>
-                    <div className="text-white font-bold text-lg">{card.rarity || 'N/A'}</div>
-                  </div>
-                  <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-lg p-4">
-                    <div className="text-blue-300 text-xs font-medium mb-1">Set</div>
-                    <div className="text-white font-bold text-lg truncate" title={card.set}>{card.set}</div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Right Column - Card Details */}
-              <div className="space-y-4">
+            {/* Stats and Details Below Card */}
+            <div className="space-y-6">
+              {/* Quick Stats - Full Width */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-lg p-4">
+                  <div className="text-purple-300 text-xs font-medium mb-1">Rarity</div>
+                  <div className="text-white font-bold text-lg">{card.rarity || 'N/A'}</div>
+                </div>
+                <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-lg p-4">
+                  <div className="text-blue-300 text-xs font-medium mb-1">Set</div>
+                  <div className="text-white font-bold text-lg truncate" title={card.set}>{card.set}</div>
+                </div>
+                <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-lg p-4">
+                  <div className="text-green-300 text-xs font-medium mb-1">Status</div>
+                  <div className="text-white font-bold text-sm">{isOwned ? 'Owned' : 'Not Owned'}</div>
+                </div>
+                {isOwned && card.quantity > 0 && (
+                  <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-lg p-4">
+                    <div className="text-amber-300 text-xs font-medium mb-1">Copies</div>
+                    <div className="text-white font-bold text-lg">{card.quantity}</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Detailed Information */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {isEditing ? (
-                  /* Edit Mode */
-                  <div className="space-y-4">
+                  /* Edit Mode - Full Width */
+                  <div className="lg:col-span-2">
                     <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-3">
                         <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -279,7 +374,7 @@ const CardDetailModal = ({ card, onClose, onUpdate, onDelete, isOwned, currentUs
                   </div>
                 ) : (
                   /* View Mode */
-                  <div className="space-y-4">
+                  <>
                     {/* Card Information */}
                     <div className="bg-slate-800/50 rounded-lg border border-purple-500/20 p-4">
                       <h3 className="text-purple-300 font-semibold mb-3 flex items-center gap-2">
@@ -352,34 +447,24 @@ const CardDetailModal = ({ card, onClose, onUpdate, onDelete, isOwned, currentUs
                       </div>
                     </div>
 
-                    {/* Card Statistics */}
+                    {/* Additional Card Stats */}
                     <div className="bg-slate-800/50 rounded-lg border border-purple-500/20 p-4">
                       <h3 className="text-purple-300 font-semibold mb-3 flex items-center gap-2">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
-                        Card Stats
+                        Additional Stats
                       </h3>
                       <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-400 text-sm">Collection Status</span>
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            isOwned
-                              ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-                              : 'bg-gray-500/20 text-gray-300 border border-gray-500/30'
-                          }`}>
-                            {isOwned ? 'Owned' : 'Not Owned'}
-                          </span>
-                        </div>
-                        {isOwned && card.quantity > 0 && (
+                        {card.cardId && (
                           <div className="flex justify-between items-center">
-                            <span className="text-gray-400 text-sm">Total Copies</span>
-                            <span className="text-white font-semibold">{card.quantity}</span>
+                            <span className="text-gray-400 text-sm">Card ID</span>
+                            <span className="text-white font-mono text-xs">{card.cardId}</span>
                           </div>
                         )}
                       </div>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
             </div>
