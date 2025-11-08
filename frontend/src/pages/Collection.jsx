@@ -37,8 +37,8 @@ export default function Collection() {
     }
   };
 
-  // Split cards into browse (available) and collection (owned by current user)
-  const browseCards = allCards.filter(card => card.userId !== user?.id);
+  // Split cards into browse (all cards) and collection (owned by current user)
+  const browseCards = allCards; // Show all cards in browse/catalog view
   const collectionCards = allCards.filter(card => card.userId === user?.id);
 
   const handleAddToCollection = async (card) => {
@@ -182,6 +182,7 @@ export default function Collection() {
           cards={browseCards}
           loading={loading}
           onAddToCollection={handleAddToCollection}
+          currentUserId={user?.id}
         />
       )}
 
