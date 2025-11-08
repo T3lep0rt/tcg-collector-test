@@ -10,6 +10,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "node prisma/seed.js",
+    "seed:tcgdex": "node prisma/seedFromTCGdex.js",
     "seed:pokemon-zone": "node prisma/seedFromPokemonZonePuppeteer.js",
     "seed:pokemon-zone:fetch": "node prisma/seedFromPokemonZone.js"
   },
