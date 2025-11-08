@@ -22,6 +22,16 @@ export default function Collection() {
     fetchCards();
   }, []);
 
+  // Update selectedCard when allCards changes to reflect live updates
+  useEffect(() => {
+    if (selectedCard && allCards.length > 0) {
+      const updatedCard = allCards.find(c => c.id === selectedCard.id);
+      if (updatedCard) {
+        setSelectedCard(updatedCard);
+      }
+    }
+  }, [allCards]);
+
   const fetchCards = async () => {
     try {
       setLoading(true);
