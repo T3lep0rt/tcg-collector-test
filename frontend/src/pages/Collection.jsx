@@ -1,303 +1,412 @@
 /**
  * Collection Page
- * Displays and manages user's card collection
+ * Pokemon TCG Pocket-style collection management with Browse and Collection views
  */
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import Browse from '../components/Browse';
+import CollectionView from '../components/Collection';
 import api from '../services/api';
 
 export default function Collection() {
   const { user, logout } = useAuth();
-  const [cards, setCards] = useState([]);
-  const [stats, setStats] = useState(null);
+  const [allCards, setAllCards] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showAddCard, setShowAddCard] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    set: '',
-    rarity: '',
-    condition: '',
-    quantity: 1,
-    imageUrl: '',
-    notes: '',
-  });
+  const [selectedCard, setSelectedCard] = useState(null);
+  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('collection');
 
   useEffect(() => {
-    loadCollection();
-    loadStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchCards();
   }, []);
 
-  const loadCollection = async () => {
+  const fetchCards = async () => {
     try {
-      const data = await api.getCards();
-      setCards(data.cards);
+      setLoading(true);
+      const response = await api.getCards();
+      setAllCards(response.cards || []);
+      setError(null);
     } catch (err) {
+      console.error('Error fetching cards:', err);
       setError(err.message);
+      // Use mock data if API fails
+      setAllCards(getMockCards());
     } finally {
       setLoading(false);
     }
   };
 
-  const loadStats = async () => {
-    try {
-      const data = await api.getCollectionStats();
-      setStats(data);
-    } catch (err) {
-      console.error('Failed to load stats:', err);
-    }
-  };
+  // Split cards into browse (available) and collection (owned by current user)
+  const browseCards = allCards.filter(card => !card.userId);
+  const collectionCards = allCards.filter(card => card.userId === user?.id);
 
-  const handleAddCard = async (e) => {
-    e.preventDefault();
+  const handleAddToCollection = async (card) => {
     try {
-      await api.createCard(formData);
-      setFormData({
-        name: '',
-        set: '',
-        rarity: '',
-        condition: '',
-        quantity: 1,
-        imageUrl: '',
-        notes: '',
+      // Update the card to add userId
+      await api.updateCard(card.id, {
+        ...card,
+        userId: user.id,
+        quantity: 1
       });
-      setShowAddCard(false);
-      loadCollection();
-      loadStats();
+      // Refresh cards
+      fetchCards();
     } catch (err) {
-      setError(err.message);
+      console.error('Error adding to collection:', err);
+      // For demo mode, update locally
+      setAllCards(prev => prev.map(c =>
+        c.id === card.id ? { ...c, userId: user.id, quantity: 1 } : c
+      ));
     }
   };
 
-  const handleDeleteCard = async (cardId) => {
-    if (!window.confirm('Are you sure you want to delete this card?')) return;
-
+  const handleRemoveFromCollection = async (card) => {
     try {
-      await api.deleteCard(cardId);
-      loadCollection();
-      loadStats();
+      // Update the card to remove userId
+      await api.updateCard(card.id, {
+        ...card,
+        userId: null,
+        quantity: 1
+      });
+      // Refresh cards
+      fetchCards();
     } catch (err) {
-      setError(err.message);
+      console.error('Error removing from collection:', err);
+      // For demo mode, update locally
+      setAllCards(prev => prev.map(c =>
+        c.id === card.id ? { ...c, userId: null } : c
+      ));
     }
+  };
+
+  const handleCardClick = (card) => {
+    setSelectedCard(card);
+  };
+
+  const closeModal = () => {
+    setSelectedCard(null);
   };
 
   const handleLogout = async () => {
     await logout();
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-gray-900 dark:text-white">Loading collection...</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            My TCG Collection
-          </h1>
-          <div className="flex items-center gap-4">
-            <span className="text-gray-700 dark:text-gray-300">
-              {user?.email}
-            </span>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
-            >
-              Logout
-            </button>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {error && (
+        <div className="fixed top-4 right-4 bg-red-500/90 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+          <p className="text-sm">Using demo data. Check your backend connection.</p>
         </div>
-      </header>
+      )}
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {error && (
-          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-md">
-            <p className="text-sm text-red-800 dark:text-red-400">{error}</p>
-          </div>
-        )}
-
-        {/* Stats */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                Total Cards
-              </h3>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                {stats.totalCards}
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                Unique Cards
-              </h3>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                {stats.uniqueCards}
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                Sets
-              </h3>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                {stats.sets}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Add Card Button */}
-        <div className="mb-6">
-          <button
-            onClick={() => setShowAddCard(!showAddCard)}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
-          >
-            {showAddCard ? 'Cancel' : 'Add Card'}
-          </button>
-        </div>
-
-        {/* Add Card Form */}
-        {showAddCard && (
-          <div className="mb-8 bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-              Add New Card
-            </h2>
-            <form onSubmit={handleAddCard} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                type="text"
-                placeholder="Card Name *"
-                required
-                className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-              <input
-                type="text"
-                placeholder="Set *"
-                required
-                className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-                value={formData.set}
-                onChange={(e) => setFormData({ ...formData, set: e.target.value })}
-              />
-              <input
-                type="text"
-                placeholder="Rarity"
-                className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-                value={formData.rarity}
-                onChange={(e) => setFormData({ ...formData, rarity: e.target.value })}
-              />
-              <input
-                type="text"
-                placeholder="Condition"
-                className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-                value={formData.condition}
-                onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
-              />
-              <input
-                type="number"
-                placeholder="Quantity"
-                min="1"
-                className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
-              />
-              <input
-                type="url"
-                placeholder="Image URL"
-                className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-                value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-              />
-              <textarea
-                placeholder="Notes"
-                className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-white md:col-span-2"
-                rows="3"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              />
+      {/* Tab Navigation with User Info */}
+      <div className="sticky top-0 z-40 bg-gradient-to-r from-slate-900/98 via-purple-900/98 to-slate-900/98 backdrop-blur-xl border-b border-purple-500/30 shadow-2xl">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
               <button
-                type="submit"
-                className="md:col-span-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md"
+                onClick={() => setActiveTab('collection')}
+                className={`
+                  relative px-8 py-4 text-lg font-semibold transition-all duration-300
+                  ${activeTab === 'collection'
+                    ? 'text-white'
+                    : 'text-gray-400 hover:text-white'
+                  }
+                `}
               >
-                Add to Collection
+                <span className="relative z-10 flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  My Collection
+                  <span className="ml-2 px-2 py-0.5 bg-purple-500 text-white text-xs rounded-full">
+                    {collectionCards.length}
+                  </span>
+                </span>
+                {activeTab === 'collection' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-t-full" />
+                )}
               </button>
-            </form>
-          </div>
-        )}
 
-        {/* Cards List */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              Your Cards ({cards.length})
-            </h2>
+              <button
+                onClick={() => setActiveTab('browse')}
+                className={`
+                  relative px-8 py-4 text-lg font-semibold transition-all duration-300
+                  ${activeTab === 'browse'
+                    ? 'text-white'
+                    : 'text-gray-400 hover:text-white'
+                  }
+                `}
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  Browse Cards
+                  <span className="ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+                    {browseCards.length}
+                  </span>
+                </span>
+                {activeTab === 'browse' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-t-full" />
+                )}
+              </button>
+            </div>
+
+            {/* User Menu */}
+            <div className="flex items-center gap-4">
+              <span className="text-gray-300 text-sm hidden md:block">
+                {user?.email}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-500/80 hover:bg-red-600 rounded-lg transition-colors"
+              >
+                Logout
+              </button>
+            </div>
           </div>
-          {cards.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-              No cards in your collection yet. Add your first card above!
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {cards.map((card) => (
-                <div
-                  key={card.id}
-                  className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex justify-between items-start"
-                >
-                  <div className="flex gap-4">
-                    {card.imageUrl && (
-                      <img
-                        src={card.imageUrl}
-                        alt={card.name}
-                        className="w-16 h-16 object-cover rounded"
-                      />
-                    )}
-                    <div>
-                      <h3 className="font-bold text-gray-900 dark:text-white">
-                        {card.name}
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Set: {card.set}
-                      </p>
-                      {card.rarity && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Rarity: {card.rarity}
-                        </p>
-                      )}
-                      {card.condition && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Condition: {card.condition}
-                        </p>
-                      )}
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Quantity: {card.quantity}
-                      </p>
-                      {card.notes && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                          {card.notes}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteCard(card.id)}
-                    className="px-3 py-1 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
-      </main>
+      </div>
+
+      {/* Content */}
+      {activeTab === 'collection' ? (
+        <CollectionView
+          cards={collectionCards}
+          loading={loading}
+          onCardClick={handleCardClick}
+          onRemoveFromCollection={handleRemoveFromCollection}
+        />
+      ) : (
+        <Browse
+          cards={browseCards}
+          loading={loading}
+          onAddToCollection={handleAddToCollection}
+        />
+      )}
+
+      {/* Card Detail Modal */}
+      {selectedCard && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn"
+          onClick={closeModal}
+        >
+          <div
+            className="bg-gradient-to-br from-slate-800 to-purple-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-purple-500/30"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h2 className="text-3xl font-bold text-white mb-2">
+                    {selectedCard.name}
+                  </h2>
+                  <p className="text-purple-300">{selectedCard.set}</p>
+                </div>
+                <button
+                  onClick={closeModal}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <svg
+                    className="w-8 h-8"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Card Image */}
+              <div className="mb-6 rounded-xl overflow-hidden bg-gradient-to-br from-slate-700 to-slate-900">
+                {selectedCard.imageUrl ? (
+                  <img
+                    src={selectedCard.imageUrl}
+                    alt={selectedCard.name}
+                    className="w-full h-auto"
+                  />
+                ) : (
+                  <div className="aspect-[2.5/3.5] flex items-center justify-center">
+                    <p className="text-gray-400">No image available</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Card Details */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  {selectedCard.rarity && (
+                    <div className="bg-slate-700/50 rounded-lg p-4">
+                      <p className="text-gray-400 text-sm mb-1">Rarity</p>
+                      <p className="text-white font-semibold">{selectedCard.rarity}</p>
+                    </div>
+                  )}
+                  {selectedCard.condition && (
+                    <div className="bg-slate-700/50 rounded-lg p-4">
+                      <p className="text-gray-400 text-sm mb-1">Condition</p>
+                      <p className="text-white font-semibold">{selectedCard.condition}</p>
+                    </div>
+                  )}
+                  <div className="bg-slate-700/50 rounded-lg p-4">
+                    <p className="text-gray-400 text-sm mb-1">Quantity</p>
+                    <p className="text-white font-semibold">{selectedCard.quantity || 1}</p>
+                  </div>
+                  <div className="bg-slate-700/50 rounded-lg p-4">
+                    <p className="text-gray-400 text-sm mb-1">Set</p>
+                    <p className="text-white font-semibold">{selectedCard.set}</p>
+                  </div>
+                </div>
+
+                {selectedCard.notes && (
+                  <div className="bg-slate-700/50 rounded-lg p-4">
+                    <p className="text-gray-400 text-sm mb-1">Notes</p>
+                    <p className="text-white">{selectedCard.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+// Mock data for demo purposes
+function getMockCards() {
+  return [
+    // Cards in collection (with userId - will be set to current user's ID)
+    {
+      id: '1',
+      name: 'Charizard',
+      set: 'Base Set',
+      rarity: 'Rare Holo',
+      condition: 'Near Mint',
+      quantity: 1,
+      imageUrl: 'https://images.pokemontcg.io/base1/4_hires.png',
+      notes: 'Classic first edition look',
+      userId: null // Will be set to current user when added
+    },
+    {
+      id: '2',
+      name: 'Pikachu',
+      set: 'Base Set',
+      rarity: 'Common',
+      condition: 'Mint',
+      quantity: 3,
+      imageUrl: 'https://images.pokemontcg.io/base1/58_hires.png',
+      notes: 'Starter collection',
+      userId: null
+    },
+    {
+      id: '3',
+      name: 'Blastoise',
+      set: 'Base Set',
+      rarity: 'Rare Holo',
+      condition: 'Near Mint',
+      quantity: 1,
+      imageUrl: 'https://images.pokemontcg.io/base1/2_hires.png',
+      notes: 'Water-type powerhouse',
+      userId: null
+    },
+    // Available cards (without userId)
+    {
+      id: '4',
+      name: 'Venusaur',
+      set: 'Base Set',
+      rarity: 'Rare Holo',
+      imageUrl: 'https://images.pokemontcg.io/base1/15_hires.png'
+    },
+    {
+      id: '5',
+      name: 'Mewtwo',
+      set: 'Base Set',
+      rarity: 'Rare Holo',
+      imageUrl: 'https://images.pokemontcg.io/base1/10_hires.png'
+    },
+    {
+      id: '6',
+      name: 'Gyarados',
+      set: 'Base Set',
+      rarity: 'Rare Holo',
+      imageUrl: 'https://images.pokemontcg.io/base1/6_hires.png'
+    },
+    {
+      id: '7',
+      name: 'Machamp',
+      set: 'Base Set',
+      rarity: 'Rare Holo',
+      imageUrl: 'https://images.pokemontcg.io/base1/8_hires.png'
+    },
+    {
+      id: '8',
+      name: 'Alakazam',
+      set: 'Base Set',
+      rarity: 'Rare Holo',
+      imageUrl: 'https://images.pokemontcg.io/base1/1_hires.png'
+    },
+    {
+      id: '9',
+      name: 'Raichu',
+      set: 'Base Set',
+      rarity: 'Rare Holo',
+      imageUrl: 'https://images.pokemontcg.io/base1/14_hires.png'
+    },
+    {
+      id: '10',
+      name: 'Ninetales',
+      set: 'Base Set',
+      rarity: 'Rare Holo',
+      imageUrl: 'https://images.pokemontcg.io/base1/12_hires.png'
+    },
+    {
+      id: '11',
+      name: 'Dragonite',
+      set: 'Fossil',
+      rarity: 'Rare Holo',
+      imageUrl: 'https://images.pokemontcg.io/base3/4_hires.png'
+    },
+    {
+      id: '12',
+      name: 'Articuno',
+      set: 'Fossil',
+      rarity: 'Rare Holo',
+      imageUrl: 'https://images.pokemontcg.io/base3/2_hires.png'
+    },
+    {
+      id: '13',
+      name: 'Zapdos',
+      set: 'Fossil',
+      rarity: 'Rare Holo',
+      imageUrl: 'https://images.pokemontcg.io/base3/15_hires.png'
+    },
+    {
+      id: '14',
+      name: 'Moltres',
+      set: 'Fossil',
+      rarity: 'Rare Holo',
+      imageUrl: 'https://images.pokemontcg.io/base3/12_hires.png'
+    },
+    {
+      id: '15',
+      name: 'Gengar',
+      set: 'Fossil',
+      rarity: 'Rare Holo',
+      imageUrl: 'https://images.pokemontcg.io/base3/5_hires.png'
+    },
+    {
+      id: '16',
+      name: 'Lapras',
+      set: 'Fossil',
+      rarity: 'Rare Holo',
+      imageUrl: 'https://images.pokemontcg.io/base3/10_hires.png'
+    }
+  ];
 }
