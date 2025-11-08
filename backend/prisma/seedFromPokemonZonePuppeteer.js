@@ -18,8 +18,19 @@ async function fetchWithPuppeteer(page, url) {
       timeout: 30000
     });
 
-    // Wait for content to load (Cloudflare challenge to complete)
-    await page.waitForSelector('body', { timeout: 10000 });
+    // Wait for React-rendered content (card grid or card links)
+    try {
+      // Try to wait for the card grid first
+      await page.waitForSelector('.card-grid', { timeout: 15000 });
+    } catch (e) {
+      // If no card grid, try waiting for card links
+      try {
+        await page.waitForSelector('a[href*="/cards/"]', { timeout: 15000 });
+      } catch (e2) {
+        // If neither exists, just wait a bit for any dynamic content
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+    }
 
     const html = await page.content();
     return html;

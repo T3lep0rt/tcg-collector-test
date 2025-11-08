@@ -236,6 +236,7 @@ To start with a fresh database, uncomment these lines in the `main()` function:
 **1. seedFromPokemonZonePuppeteer.js** (Recommended)
 - **Browser Automation**: Uses Puppeteer with headless Chrome
 - **Cloudflare Bypass**: Executes JavaScript to pass bot challenges
+- **React Content Waiting**: Waits for `.card-grid` elements to ensure client-side rendered content loads
 - **HTML Parsing**: Regex-based parsing after page load
 - **Database**: Prisma ORM with PostgreSQL
 - **Performance**: Slower but reliable
