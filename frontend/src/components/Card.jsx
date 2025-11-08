@@ -7,6 +7,13 @@ const Card = ({ card, onClick }) => {
   const [glarePosition, setGlarePosition] = useState({ x: 50, y: 50 });
   const [isHovering, setIsHovering] = useState(false);
 
+  // Check if card is a crown card (rarity value >= 7)
+  const isCrownCard = (rarity) => {
+    if (!rarity) return false;
+    const rarityNum = parseInt(rarity);
+    return !isNaN(rarityNum) && rarityNum >= 7;
+  };
+
   const getRarityColor = (rarity) => {
     const rarityLower = rarity?.toLowerCase() || '';
     if (rarityLower.includes('holo') || rarityLower.includes('rare')) {
@@ -20,6 +27,17 @@ const Card = ({ card, onClick }) => {
 
   const getRarityBadge = (rarity) => {
     if (!rarity) return null;
+
+    // Crown cards get a special crown badge
+    if (isCrownCard(rarity)) {
+      return (
+        <div className="absolute top-2 right-2 z-10">
+          <div className="bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-pulse">
+            👑 Crown
+          </div>
+        </div>
+      );
+    }
 
     const rarityLower = rarity.toLowerCase();
     if (rarityLower.includes('holo') || rarityLower.includes('rare')) {
@@ -119,14 +137,20 @@ const Card = ({ card, onClick }) => {
         {/* Front of card */}
         <div className="absolute inset-0 backface-hidden">
           <div className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl transition-all duration-300 transform group-hover:scale-105 group-hover:shadow-3xl">
-            {/* Holographic effect overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none animate-shimmer" />
+            {/* Holographic effect overlay - golden for crown cards */}
+            {isCrownCard(card.rarity) ? (
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/30 via-amber-400/30 to-yellow-600/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none animate-golden-shimmer" />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none animate-shimmer" />
+            )}
 
-            {/* Dynamic glare effect that follows mouse */}
+            {/* Dynamic glare effect that follows mouse - golden for crown cards */}
             <div
               className="absolute inset-0 z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
               style={{
-                background: `radial-gradient(circle at ${glarePosition.x}% ${glarePosition.y}%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.3) 20%, transparent 50%)`,
+                background: isCrownCard(card.rarity)
+                  ? `radial-gradient(circle at ${glarePosition.x}% ${glarePosition.y}%, rgba(255, 215, 0, 0.9) 0%, rgba(255, 223, 0, 0.5) 20%, transparent 50%)`
+                  : `radial-gradient(circle at ${glarePosition.x}% ${glarePosition.y}%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.3) 20%, transparent 50%)`,
                 mixBlendMode: 'overlay',
               }}
             />
@@ -194,8 +218,14 @@ const Card = ({ card, onClick }) => {
               )}
             </div>
 
-            {/* Border glow effect */}
-            <div className="absolute inset-0 rounded-xl border-2 border-transparent group-hover:border-white/30 transition-colors duration-300 pointer-events-none" />
+            {/* Border glow effect - golden for crown cards */}
+            <div
+              className={`absolute inset-0 rounded-xl border-2 border-transparent transition-colors duration-300 pointer-events-none ${
+                isCrownCard(card.rarity)
+                  ? 'group-hover:border-yellow-400/50 group-hover:shadow-[0_0_20px_rgba(255,215,0,0.5)]'
+                  : 'group-hover:border-white/30'
+              }`}
+            />
           </div>
         </div>
       </div>
