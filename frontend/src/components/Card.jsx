@@ -45,15 +45,9 @@ const Card = ({ card, onClick }) => {
   const getRarityBadge = (rarity) => {
     if (!rarity) return null;
 
-    // Crown cards get a special crown badge
+    // Crown cards don't show a badge - their effects speak for themselves
     if (isCrownCard(rarity)) {
-      return (
-        <div className="absolute top-2 right-2 z-10">
-          <div className="bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-pulse">
-            👑 Crown
-          </div>
-        </div>
-      );
+      return null;
     }
 
     const rarityLower = rarity.toLowerCase();
@@ -164,11 +158,11 @@ const Card = ({ card, onClick }) => {
             {/* Sparkles for crown cards */}
             {isCrownCard(card.rarity) && (
               <>
-                <div className="absolute top-[15%] left-[20%] w-2 h-2 bg-yellow-300 rounded-full opacity-0 group-hover:opacity-70 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 1.5s ease-in-out infinite' }} />
-                <div className="absolute top-[25%] right-[15%] w-1.5 h-1.5 bg-amber-200 rounded-full opacity-0 group-hover:opacity-60 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 2s ease-in-out infinite 0.3s' }} />
-                <div className="absolute bottom-[30%] left-[15%] w-1 h-1 bg-yellow-400 rounded-full opacity-0 group-hover:opacity-80 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 1.8s ease-in-out infinite 0.6s' }} />
-                <div className="absolute bottom-[20%] right-[25%] w-1.5 h-1.5 bg-yellow-300 rounded-full opacity-0 group-hover:opacity-70 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 2.2s ease-in-out infinite 0.9s' }} />
-                <div className="absolute top-[45%] right-[10%] w-1 h-1 bg-amber-300 rounded-full opacity-0 group-hover:opacity-60 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 1.7s ease-in-out infinite 1.2s' }} />
+                <div className="absolute top-[15%] left-[20%] w-2 h-2 bg-white rounded-full opacity-0 group-hover:opacity-70 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 1.5s ease-in-out infinite' }} />
+                <div className="absolute top-[25%] right-[15%] w-1.5 h-1.5 bg-white rounded-full opacity-0 group-hover:opacity-60 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 2s ease-in-out infinite 0.3s' }} />
+                <div className="absolute bottom-[30%] left-[15%] w-1 h-1 bg-white rounded-full opacity-0 group-hover:opacity-80 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 1.8s ease-in-out infinite 0.6s' }} />
+                <div className="absolute bottom-[20%] right-[25%] w-1.5 h-1.5 bg-white rounded-full opacity-0 group-hover:opacity-70 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 2.2s ease-in-out infinite 0.9s' }} />
+                <div className="absolute top-[45%] right-[10%] w-1 h-1 bg-white rounded-full opacity-0 group-hover:opacity-60 transition-opacity duration-300 pointer-events-none z-20" style={{ animation: 'goldenSparkle 1.7s ease-in-out infinite 1.2s' }} />
               </>
             )}
 
