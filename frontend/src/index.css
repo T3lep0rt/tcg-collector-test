@@ -89,15 +89,15 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 215, 0, 0.2) 20%,
-    rgba(255, 223, 0, 0.4) 40%,
-    rgba(255, 215, 0, 0.6) 50%,
-    rgba(255, 223, 0, 0.4) 60%,
-    rgba(255, 215, 0, 0.2) 80%,
+    rgba(255, 215, 0, 0.1) 20%,
+    rgba(255, 223, 0, 0.2) 40%,
+    rgba(255, 215, 0, 0.3) 50%,
+    rgba(255, 223, 0, 0.2) 60%,
+    rgba(255, 215, 0, 0.1) 80%,
     transparent 100%
   );
   background-size: 200% auto;
-  animation: goldenShimmer 2s linear infinite;
+  animation: goldenShimmer 2.5s linear infinite;
 }
 
 /* Golden sparkle animation */
