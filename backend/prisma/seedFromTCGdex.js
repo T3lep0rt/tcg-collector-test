@@ -43,7 +43,7 @@ function mapCardData(card, setId, setName) {
   return {
     cardId: card.id, // Unique TCGdex ID
     name: card.name,
-    set: setId, // Use for filtering (e.g., 'A1', 'A2')
+    set: setName, // Use set name (e.g., 'Genetic Apex', 'Mythical Island')
     setName: setName, // Display name
     number: card.localId || card.id.split('-').pop(), // Card number in set
     rarity: Array.isArray(card.rarity) ? card.rarity.join(', ') : card.rarity || null,
@@ -202,7 +202,7 @@ async function main() {
   console.log('='.repeat(60));
   console.log('\n✅ Seeding Complete!');
   console.log('\n💡 Cards can be filtered by set using the "set" field');
-  console.log('   Example: A1, A2, A3, promo-a, etc.');
+  console.log('   Example: Genetic Apex, Mythical Island, Promo-A, etc.');
 }
 
 main()
