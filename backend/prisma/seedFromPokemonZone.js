@@ -289,23 +289,22 @@ async function generateCardsForExpansion(url, expansionName, setSlug) {
       console.log(`  Rarity: ${rarityName}`);
       console.log(`  Booster: ${booster || 'N/A'}`);
 
-      // Check if card already exists (using set slug for more precise matching)
+      // Check if card already exists
       const existingCard = await prisma.card.findFirst({
         where: {
           name: cardData.name,
           number: cardData.number,
-          set: setSlug  // Use slug for consistent filtering
+          set: expansionName
         }
       });
 
       if (!existingCard) {
         // Insert the card into the database
-        // Use setSlug for the 'set' field for consistent filtering
         const newCard = await prisma.card.create({
           data: {
             name: cardData.name,
-            set: setSlug,  // Use slug for filtering
-            setName: cardData.expansion,  // Use full name for display
+            set: expansionName,  // Use expansion name (e.g., "Genetic Apex")
+            setName: expansionName,
             number: cardData.number,
             rarity: cardData.rarity,
             imageUrl: cardData.imageUrl,
@@ -406,8 +405,8 @@ async function main() {
   console.log(`Errors:                ${overallStats.errors}`);
   console.log('='.repeat(60));
   console.log('\n✅ Seeding Complete!');
-  console.log('\n💡 Tip: You can now filter cards by set using the "set" field (slug format)');
-  console.log('   Example sets: a1, promo-a, a1a');
+  console.log('\n💡 Tip: You can now filter cards by set using the "set" field');
+  console.log('   Example sets: Genetic Apex, Mythical Island, Promo-A');
 }
 
 main()
